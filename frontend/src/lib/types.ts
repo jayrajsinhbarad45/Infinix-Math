@@ -63,3 +63,36 @@ export interface HistoryItem {
   is_symbolically_verified: boolean;
   steps_count: number;
 }
+
+export type StepVerificationStatus = 'correct' | 'incorrect_math' | 'incomplete' | 'unclear';
+
+export interface StepVerificationRequest {
+  problem: string;
+  previous_steps: string[];
+  proposed_step: string;
+  variable?: string;
+}
+
+export interface StepVerificationResponse {
+  is_valid: boolean;
+  status: StepVerificationStatus;
+  confidence: number;
+  evidence: string;
+  error_code?: string;
+  suggested_correction?: string;
+  pedagogical_hint?: string;
+  is_symbolically_verified: boolean;
+  is_final_step: boolean;
+  execution_time_ms: number;
+}
+
+export interface TutorHintRequest {
+  problem: string;
+  current_steps: string[];
+}
+
+export interface TutorHintResponse {
+  hint: string;
+  suggested_technique?: string;
+}
+

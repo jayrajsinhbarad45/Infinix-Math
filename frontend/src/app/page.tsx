@@ -6,6 +6,7 @@ import {
   Camera,
   Compass,
   Edit3,
+  GraduationCap,
   Lightbulb,
   Loader2,
   PenTool,
@@ -20,8 +21,10 @@ import ImageUploader from '../components/ImageUploader';
 import MathRenderer from '../components/MathRenderer';
 import MathToolbar from '../components/MathToolbar';
 import SolutionViewer from '../components/SolutionViewer';
+import TutorMode from '../components/TutorMode';
 
 type InputMode = 'text' | 'image' | 'draw';
+type AppMode = 'solver' | 'tutor';
 
 const EXAMPLE_PROBLEMS = [
   { label: 'Definite Integral', latex: '\\int_{0}^{2} (3x^2 + 2x) dx', domain: 'integral' as MathDomain },
@@ -32,6 +35,7 @@ const EXAMPLE_PROBLEMS = [
 ];
 
 export default function HomePage() {
+  const [appMode, setAppMode] = useState<AppMode>('solver');
   const [inputMode, setInputMode] = useState<InputMode>('text');
   const [problemText, setProblemText] = useState('\\int_{0}^{2} (3x^2 + 2x) dx');
   const [selectedDomain, setSelectedDomain] = useState<MathDomain>('auto');
@@ -155,199 +159,242 @@ export default function HomePage() {
         </p>
       </div>
 
-      {/* Input Mode Selector Tabs */}
+      {/* Primary Navigation: Solver vs Tutor */}
       <div className="flex items-center justify-center">
-        <div className="inline-flex p-1.5 bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-inner gap-1">
+        <div className="inline-flex p-1.5 bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-xl gap-2">
           <button
             type="button"
-            id="tab-mode-text"
-            onClick={() => setInputMode('text')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-              inputMode === 'text'
-                ? 'bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-md shadow-indigo-500/25'
+            id="tab-app-solver"
+            onClick={() => setAppMode('solver')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+              appMode === 'solver'
+                ? 'bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-500/30'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
             }`}
           >
-            <Edit3 className="w-3.5 h-3.5" />
-            <span>Formula / Text</span>
+            <Calculator className="w-4 h-4" />
+            <span>Instant Solver</span>
           </button>
 
           <button
             type="button"
-            id="tab-mode-image"
-            onClick={() => setInputMode('image')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-              inputMode === 'image'
-                ? 'bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-md shadow-indigo-500/25'
+            id="tab-app-tutor"
+            onClick={() => setAppMode('tutor')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+              appMode === 'tutor'
+                ? 'bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-500/30'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
             }`}
           >
-            <Camera className="w-3.5 h-3.5" />
-            <span>Upload Photo (OCR)</span>
-          </button>
-
-          <button
-            type="button"
-            id="tab-mode-draw"
-            onClick={() => setInputMode('draw')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-              inputMode === 'draw'
-                ? 'bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-md shadow-indigo-500/25'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-            }`}
-          >
-            <PenTool className="w-3.5 h-3.5" />
-            <span>Drawing Pad</span>
+            <GraduationCap className="w-4 h-4 text-amber-300" />
+            <span>AI Tutor Mode</span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/30 text-indigo-200 border border-indigo-400/30 font-semibold">
+              Step Verifier
+            </span>
           </button>
         </div>
       </div>
 
-      {/* Main Interactive Input Card */}
-      <div className="bg-slate-900/70 border border-slate-800 rounded-3xl p-6 sm:p-8 backdrop-blur-2xl shadow-2xl shadow-black/50 space-y-5">
-        {/* Domain selection pills */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800/70">
-          <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
-            <Compass className="w-4 h-4 text-indigo-400" />
-            <span>Domain:</span>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {(['auto', 'calculus', 'algebra', 'equations', 'integral', 'derivative'] as MathDomain[]).map(
-              (domain) => (
-                <button
-                  key={domain}
-                  type="button"
-                  id={`domain-pill-${domain}`}
-                  onClick={() => setSelectedDomain(domain)}
-                  className={`px-3 py-1 rounded-full text-xs font-mono capitalize transition-all ${
-                    selectedDomain === domain
-                      ? 'bg-indigo-600 text-white font-semibold shadow-sm shadow-indigo-500/40'
-                      : 'bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-700/60'
-                  }`}
-                >
-                  {domain}
-                </button>
-              )
-            )}
-          </div>
-        </div>
+      {/* Mode-Specific Views */}
+      {appMode === 'tutor' ? (
+        <TutorMode />
+      ) : (
+        <>
+          {/* Input Mode Selector Tabs */}
+          <div className="flex items-center justify-center">
+            <div className="inline-flex p-1.5 bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-inner gap-1">
+              <button
+                type="button"
+                id="tab-mode-text"
+                onClick={() => setInputMode('text')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+                  inputMode === 'text'
+                    ? 'bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-md shadow-indigo-500/25'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                }`}
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                <span>Formula / Text</span>
+              </button>
 
-        {/* Dynamic Mode Content */}
-        {inputMode === 'text' && (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="math-problem-input" className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Mathematical Expression (LaTeX or String)
-              </label>
-              <div className="relative">
-                <textarea
-                  id="math-problem-input"
-                  rows={3}
-                  value={problemText}
-                  onChange={(e) => setProblemText(e.target.value)}
-                  placeholder="Enter formula, e.g. \int_{0}^{2} x^2 dx, or 2x^2 - 8 = 0"
-                  className="w-full bg-slate-950/80 border border-slate-700/80 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-2xl p-4 text-slate-100 font-mono text-base placeholder-slate-600 outline-none transition-all resize-y"
-                />
+              <button
+                type="button"
+                id="tab-mode-image"
+                onClick={() => setInputMode('image')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+                  inputMode === 'image'
+                    ? 'bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-md shadow-indigo-500/25'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                }`}
+              >
+                <Camera className="w-3.5 h-3.5" />
+                <span>Upload Photo (OCR)</span>
+              </button>
+
+              <button
+                type="button"
+                id="tab-mode-draw"
+                onClick={() => setInputMode('draw')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+                  inputMode === 'draw'
+                    ? 'bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-md shadow-indigo-500/25'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                }`}
+              >
+                <PenTool className="w-3.5 h-3.5" />
+                <span>Drawing Pad</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Main Interactive Input Card */}
+          <div className="bg-slate-900/70 border border-slate-800 rounded-3xl p-6 sm:p-8 backdrop-blur-2xl shadow-2xl shadow-black/50 space-y-5">
+            {/* Domain selection pills */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800/70">
+              <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
+                <Compass className="w-4 h-4 text-indigo-400" />
+                <span>Domain:</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {(['auto', 'calculus', 'algebra', 'equations', 'integral', 'derivative'] as MathDomain[]).map(
+                  (domain) => (
+                    <button
+                      key={domain}
+                      type="button"
+                      id={`domain-pill-${domain}`}
+                      onClick={() => setSelectedDomain(domain)}
+                      className={`px-3 py-1 rounded-full text-xs font-mono capitalize transition-all ${
+                        selectedDomain === domain
+                          ? 'bg-indigo-600 text-white font-semibold shadow-sm shadow-indigo-500/40'
+                          : 'bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-700/60'
+                      }`}
+                    >
+                      {domain}
+                    </button>
+                  )
+                )}
               </div>
             </div>
 
-            {/* Quick-insert Symbol Toolbar */}
-            <MathToolbar onInsert={handleInsertSnippet} />
-
-            {/* Live KaTeX Preview */}
-            {problemText.trim() && (
-              <div className="p-4 bg-slate-950/50 border border-slate-800/80 rounded-2xl space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                  Live KaTeX Preview:
-                </span>
-                <div className="overflow-x-auto text-indigo-200 text-lg py-1">
-                  <MathRenderer content={`$$${problemText}$$`} displayMode={true} />
+            {/* Dynamic Mode Content */}
+            {inputMode === 'text' && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label htmlFor="math-problem-input" className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    Mathematical Expression (LaTeX or String)
+                  </label>
+                  <div className="relative">
+                    <textarea
+                      id="math-problem-input"
+                      rows={3}
+                      value={problemText}
+                      onChange={(e) => setProblemText(e.target.value)}
+                      placeholder="Enter formula, e.g. \int_{0}^{2} x^2 dx, or 2x^2 - 8 = 0"
+                      className="w-full bg-slate-950/80 border border-slate-700/80 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-2xl p-4 text-slate-100 font-mono text-base placeholder-slate-600 outline-none transition-all resize-y"
+                    />
+                  </div>
                 </div>
+
+                {/* Quick-insert Symbol Toolbar */}
+                <MathToolbar onInsert={handleInsertSnippet} />
+
+                {/* Live KaTeX Preview */}
+                {problemText.trim() && (
+                  <div className="p-4 bg-slate-950/50 border border-slate-800/80 rounded-2xl space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                      Live KaTeX Preview:
+                    </span>
+                    <div className="overflow-x-auto text-indigo-200 text-lg py-1">
+                      <MathRenderer content={`$$${problemText}$$`} displayMode={true} />
+                    </div>
+                  </div>
+                )}
               </div>
             )}
-          </div>
-        )}
 
-        {inputMode === 'image' && (
-          <ImageUploader
-            onExtractionSuccess={handleOcrSuccess}
-            onError={(msg) => setErrorMessage(msg)}
-          />
-        )}
-
-        {inputMode === 'draw' && (
-          <DrawingCanvas
-            onExtractionSuccess={handleOcrSuccess}
-            onError={(msg) => setErrorMessage(msg)}
-          />
-        )}
-
-        {/* Action Controls & Presets */}
-        <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-          {/* Quick example presets */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-xs text-slate-500 flex items-center gap-1 mr-1">
-              <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
-              <span>Presets:</span>
-            </span>
-            {EXAMPLE_PROBLEMS.map((ex) => (
-              <button
-                key={ex.label}
-                type="button"
-                onClick={() => {
-                  setProblemText(ex.latex);
-                  setSelectedDomain(ex.domain);
-                  handleSolve(ex.latex, ex.domain);
-                }}
-                className="px-2.5 py-1 text-xs rounded-lg bg-slate-800/60 hover:bg-indigo-600/30 text-slate-300 hover:text-indigo-200 border border-slate-700/50 hover:border-indigo-500/40 transition-colors"
-              >
-                {ex.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Primary Submit Button */}
-          <button
-            type="button"
-            id="btn-solve-problem"
-            onClick={() => handleSolve()}
-            disabled={isLoading || !problemText.trim()}
-            className="px-6 py-3 rounded-2xl bg-gradient-to-r from-indigo-500 via-indigo-600 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-semibold text-sm shadow-xl shadow-indigo-500/25 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Solving with SymPy...</span>
-              </>
-            ) : (
-              <>
-                <Calculator className="w-4 h-4" />
-                <span>Solve Expression</span>
-                <kbd className="hidden sm:inline text-[10px] bg-indigo-700/50 px-1.5 py-0.5 rounded text-indigo-200 border border-indigo-500/30">
-                  Ctrl+↵
-                </kbd>
-              </>
+            {inputMode === 'image' && (
+              <ImageUploader
+                onExtractionSuccess={handleOcrSuccess}
+                onError={(msg) => setErrorMessage(msg)}
+              />
             )}
-          </button>
-        </div>
-      </div>
 
-      {/* Solutions & Derivations Display */}
-      <SolutionViewer
-        response={solution}
-        isLoading={isLoading}
-        error={errorMessage}
-      />
+            {inputMode === 'draw' && (
+              <DrawingCanvas
+                onExtractionSuccess={handleOcrSuccess}
+                onError={(msg) => setErrorMessage(msg)}
+              />
+            )}
 
-      {/* Recent Query History Drawer */}
-      <HistoryDrawer
-        items={history}
-        onSelect={(item) => {
-          setProblemText(item.problem_text);
-          setSelectedDomain(item.domain as MathDomain);
-          handleSolve(item.problem_text, item.domain as MathDomain);
-        }}
-        onClear={clearHistory}
-      />
+            {/* Action Controls & Presets */}
+            <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+              {/* Quick example presets */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-xs text-slate-500 flex items-center gap-1 mr-1">
+                  <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Presets:</span>
+                </span>
+                {EXAMPLE_PROBLEMS.map((ex) => (
+                  <button
+                    key={ex.label}
+                    type="button"
+                    onClick={() => {
+                      setProblemText(ex.latex);
+                      setSelectedDomain(ex.domain);
+                      handleSolve(ex.latex, ex.domain);
+                    }}
+                    className="px-2.5 py-1 text-xs rounded-lg bg-slate-800/60 hover:bg-indigo-600/30 text-slate-300 hover:text-indigo-200 border border-slate-700/50 hover:border-indigo-500/40 transition-colors"
+                  >
+                    {ex.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Primary Submit Button */}
+              <button
+                type="button"
+                id="btn-solve-problem"
+                onClick={() => handleSolve()}
+                disabled={isLoading || !problemText.trim()}
+                className="px-6 py-3 rounded-2xl bg-gradient-to-r from-indigo-500 via-indigo-600 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-semibold text-sm shadow-xl shadow-indigo-500/25 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Solving with SymPy...</span>
+                  </>
+                ) : (
+                  <>
+                    <Calculator className="w-4 h-4" />
+                    <span>Solve Expression</span>
+                    <kbd className="hidden sm:inline text-[10px] bg-indigo-700/50 px-1.5 py-0.5 rounded text-indigo-200 border border-indigo-500/30">
+                      Ctrl+↵
+                    </kbd>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Solutions & Derivations Display */}
+          <SolutionViewer
+            response={solution}
+            isLoading={isLoading}
+            error={errorMessage}
+          />
+
+          {/* Recent Query History Drawer */}
+          <HistoryDrawer
+            items={history}
+            onSelect={(item) => {
+              setProblemText(item.problem_text);
+              setSelectedDomain(item.domain as MathDomain);
+              handleSolve(item.problem_text, item.domain as MathDomain);
+            }}
+            onClear={clearHistory}
+          />
+        </>
+      )}
     </div>
   );
 }

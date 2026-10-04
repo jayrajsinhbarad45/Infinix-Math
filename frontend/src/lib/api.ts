@@ -76,3 +76,56 @@ export async function checkBackendHealth(): Promise<HealthResponse> {
     };
   }
 }
+
+export async function verifyStudentStep(
+  request: import('./types').StepVerificationRequest
+): Promise<import('./types').StepVerificationResponse> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/v1/tutor/verify-step`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.detail || `Step verification failed with status ${res.status}`);
+    }
+
+    return await res.json();
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('An unknown network error occurred during step verification');
+  }
+}
+
+export async function getTutorHint(
+  request: import('./types').TutorHintRequest
+): Promise<import('./types').TutorHintResponse> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/v1/tutor/hint`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.detail || `Failed to fetch hint with status ${res.status}`);
+    }
+
+    return await res.json();
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('An unknown network error occurred while generating hint');
+  }
+}
+

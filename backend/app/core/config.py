@@ -27,7 +27,7 @@ class Settings(BaseSettings):
 
     # Google Gemini settings
     GEMINI_API_KEY: str = Field(default="", validation_alias="GEMINI_API_KEY")
-    GEMINI_MODEL: str = "gemini-2.5-flash"
+    GEMINI_MODEL: str = "gemini-3.8-flash"
     MOCK_GEMINI_FALLBACK: bool = True
 
     model_config = SettingsConfigDict(

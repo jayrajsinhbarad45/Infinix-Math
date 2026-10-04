@@ -58,18 +58,47 @@ class SolveResponse(BaseModel):
     error: Optional[str] = Field(default=None, description="Error message if solving failed")
 
 
-class VerificationRequest(BaseModel):
-    problem: str = Field(..., description="Original problem statement")
-    previous_steps: List[str] = Field(default_factory=list, description="Preceding steps")
+class StepVerificationStatus(str, Enum):
+    CORRECT = "correct"
+    INCORRECT_MATH = "incorrect_math"
+    INCOMPLETE = "incomplete"
+    UNCLEAR = "unclear"
+
+
+class StepVerificationRequest(BaseModel):
+    problem: str = Field(..., description="Original problem statement or equation")
+    previous_steps: List[str] = Field(default_factory=list, description="List of previous valid derivation steps")
     proposed_step: str = Field(..., description="The student's proposed next step")
+    variable: Optional[str] = Field(default=None, description="Target variable of interest")
 
 
-class VerificationResponse(BaseModel):
-    is_correct: bool = Field(..., description="Whether the proposed step is mathematically valid")
-    confidence: float = Field(default=1.0, ge=0.0, le=1.0)
-    evidence: str = Field(..., description="Detailed verification explanation")
-    error_code: Optional[str] = Field(default=None, description="Taxonomy error code if invalid")
-    is_symbolically_verified: bool = Field(default=True)
+class StepVerificationResponse(BaseModel):
+    is_valid: bool = Field(..., description="Whether the proposed step is mathematically valid and equivalent")
+    status: StepVerificationStatus = Field(..., description="Status classification (correct, incorrect_math, etc.)")
+    confidence: float = Field(default=1.0, ge=0.0, le=1.0, description="Verification confidence score")
+    evidence: str = Field(..., description="Pedagogical explanation of why the step is valid or where the error occurred")
+    error_code: Optional[str] = Field(default=None, description="Taxonomy error code if invalid (e.g. SIGN_ERROR, CHAIN_RULE_MISUSE)")
+    suggested_correction: Optional[str] = Field(default=None, description="Suggested correct mathematical step")
+    pedagogical_hint: Optional[str] = Field(default=None, description="Scaffolding hint to guide student to correct derivation")
+    is_symbolically_verified: bool = Field(default=True, description="Whether verified with SymPy")
+    is_final_step: bool = Field(default=False, description="Whether this step represents the final solved answer")
+    execution_time_ms: float = Field(default=0.0, description="Verification latency in milliseconds")
+
+
+class TutorHintRequest(BaseModel):
+    problem: str = Field(..., description="Original problem statement")
+    current_steps: List[str] = Field(default_factory=list, description="Steps completed so far")
+
+
+class TutorHintResponse(BaseModel):
+    hint: str = Field(..., description="Scaffolding hint explaining the next mathematical strategy")
+    suggested_technique: Optional[str] = Field(default=None, description="Mathematical rule or technique to apply")
+
+
+# Backward compatibility aliases
+VerificationRequest = StepVerificationRequest
+VerificationResponse = StepVerificationResponse
+
 
 
 class OcrExtractResponse(BaseModel):
