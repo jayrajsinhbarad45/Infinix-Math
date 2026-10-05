@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Infinix Math</string>
+    <string name="title_activity_main">Infinix Math</string>
+    <string name="package_name">com.infinixmath.ai</string>
+    <string name="custom_url_scheme">com.infinixmath.ai</string>
+</resources>

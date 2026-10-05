@@ -1,0 +1,8 @@
+{
+  "appId": "com.infinixmath.ai",
+  "appName": "Infinix Math",
+  "webDir": "out",
+  "server": {
+    "androidScheme": "https"
+  }
+}
