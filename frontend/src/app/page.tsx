@@ -1,20 +1,28 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
+  BookOpen,
   Calculator,
   Camera,
   Compass,
   Edit3,
+  FileText,
   GraduationCap,
+  Grid3X3,
+  Infinity as InfinityIcon,
   Lightbulb,
   Loader2,
   PenTool,
-  RotateCcw,
+  Settings,
   Sparkles,
+  TrendingUp,
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { solveMathProblem } from '../lib/api';
 import { HistoryItem, MathDomain, OcrExtractResponse, SolveResponse } from '../lib/types';
+import AppShell, { WorkspaceTab } from '../components/AppShell';
 import DrawingCanvas from '../components/DrawingCanvas';
 import HistoryDrawer from '../components/HistoryDrawer';
 import ImageUploader from '../components/ImageUploader';
@@ -24,18 +32,20 @@ import SolutionViewer from '../components/SolutionViewer';
 import TutorMode from '../components/TutorMode';
 
 type InputMode = 'text' | 'image' | 'draw';
-type AppMode = 'solver' | 'tutor';
 
 const EXAMPLE_PROBLEMS = [
   { label: 'Definite Integral', latex: '\\int_{0}^{2} (3x^2 + 2x) dx', domain: 'integral' as MathDomain },
   { label: 'Quadratic Equation', latex: 'x^2 - 5x + 6 = 0', domain: 'equations' as MathDomain },
-  { label: 'Product Rule Derivative', latex: '\\frac{d}{dx}(x^3 \\sin(x))', domain: 'derivative' as MathDomain },
+  { label: 'Derivative Product Rule', latex: '\\frac{d}{dx}(x^3 \\sin(x))', domain: 'derivative' as MathDomain },
   { label: 'Linear System', latex: '2x + y = 7, x - y = 1', domain: 'equations' as MathDomain },
-  { label: 'Rational Simplification', latex: '\\frac{x^2 - 9}{x - 3}', domain: 'algebra' as MathDomain },
+  { label: 'Rational Expression', latex: '\\frac{x^2 - 9}{x - 3}', domain: 'algebra' as MathDomain },
 ];
 
-export default function HomePage() {
-  const [appMode, setAppMode] = useState<AppMode>('solver');
+export default function DashboardPage() {
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
+  const router = useRouter();
+
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>('solver');
   const [inputMode, setInputMode] = useState<InputMode>('text');
   const [problemText, setProblemText] = useState('\\int_{0}^{2} (3x^2 + 2x) dx');
   const [selectedDomain, setSelectedDomain] = useState<MathDomain>('auto');
@@ -44,19 +54,23 @@ export default function HomePage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
-  // Load history from localStorage on mount
+  // Route protection: redirect to /login if unauthenticated
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.push('/login');
+    }
+  }, [authLoading, isAuthenticated, router]);
+
+  // Load history from localStorage
   useEffect(() => {
     try {
       const stored = localStorage.getItem('infinix_math_history');
-      if (stored) {
-        setHistory(JSON.parse(stored));
-      }
+      if (stored) setHistory(JSON.parse(stored));
     } catch {
-      // LocalStorage unavailable
+      // Ignored
     }
   }, []);
 
-  // Save history to localStorage
   const saveToHistory = (item: HistoryItem) => {
     setHistory((prev) => {
       const filtered = prev.filter((h) => h.problem_text !== item.problem_text);
@@ -79,18 +93,6 @@ export default function HomePage() {
     }
   };
 
-  // Keyboard shortcut Ctrl+Enter to solve
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        e.preventDefault();
-        handleSolve();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  });
-
   const handleInsertSnippet = (snippet: string) => {
     setProblemText((prev) => prev + snippet);
   };
@@ -98,7 +100,7 @@ export default function HomePage() {
   const handleSolve = async (overrideText?: string, overrideDomain?: MathDomain) => {
     const textToSolve = (overrideText ?? problemText).trim();
     if (!textToSolve) {
-      setErrorMessage('Please enter an equation or problem expression to solve.');
+      setErrorMessage('Please enter an expression to solve.');
       return;
     }
 
@@ -111,11 +113,10 @@ export default function HomePage() {
         domain: overrideDomain ?? selectedDomain,
       });
 
-      setSolution(res);
-
       if (res.success) {
+        setSolution(res);
         saveToHistory({
-          id: Math.random().toString(36).substring(2, 9),
+          id: `hist_${Date.now()}`,
           timestamp: Date.now(),
           problem_text: textToSolve,
           domain: res.domain,
@@ -138,71 +139,50 @@ export default function HomePage() {
   const handleOcrSuccess = (extractedLatex: string, _ocrMeta: OcrExtractResponse) => {
     setProblemText(extractedLatex);
     setInputMode('text');
-    // Automatically trigger solve on OCR extraction
     handleSolve(extractedLatex);
   };
 
+  // Loading skeleton while checking authentication state
+  if (authLoading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-[#070b14] flex flex-col items-center justify-center space-y-4">
+        <div className="relative">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 via-violet-600 to-fuchsia-600 p-[1.5px] shadow-xl shadow-indigo-500/30">
+            <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center text-indigo-400">
+              <InfinityIcon className="w-8 h-8 text-indigo-400 animate-pulse" />
+            </div>
+          </div>
+        </div>
+        <div className="text-sm font-semibold text-slate-400 flex items-center gap-2">
+          <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />
+          <span>Loading Infinix Math Workspace...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8">
-      {/* Hero Title */}
-      <div className="text-center space-y-3">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-medium">
-          <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-          <span>Zero-Hallucination Symbolic Mathematics</span>
-        </div>
-        <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight bg-gradient-to-b from-white via-slate-100 to-indigo-300 bg-clip-text text-transparent">
-          Solve with Absolute Precision
-        </h1>
-        <p className="text-sm sm:text-base text-slate-400 max-w-2xl mx-auto">
-          Type LaTeX, snap an equation photo with Gemini Vision, or sketch on the drawing pad.
-          Every step is verified by Python SymPy.
-        </p>
-      </div>
+    <AppShell currentTab={activeTab} onTabChange={setActiveTab}>
+      {/* View: Solver Workspace */}
+      {activeTab === 'solver' && (
+        <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-300">
+          {/* Hero Banner */}
+          <div className="text-center space-y-3 pt-2">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-semibold">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Zero-Hallucination Symbolic CAS Engine</span>
+            </div>
+            <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight bg-gradient-to-b from-white via-slate-100 to-indigo-300 bg-clip-text text-transparent">
+              Solve with Absolute Precision
+            </h1>
+            <p className="text-sm sm:text-base text-slate-400 max-w-2xl mx-auto">
+              Type mathematical formulas, upload a photo with Gemini Vision OCR, or draw on the whiteboard. Every derivation is verified by SymPy.
+            </p>
+          </div>
 
-      {/* Primary Navigation: Solver vs Tutor */}
-      <div className="flex items-center justify-center">
-        <div className="inline-flex p-1.5 bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-xl gap-2">
-          <button
-            type="button"
-            id="tab-app-solver"
-            onClick={() => setAppMode('solver')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-              appMode === 'solver'
-                ? 'bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-500/30'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-            }`}
-          >
-            <Calculator className="w-4 h-4" />
-            <span>Instant Solver</span>
-          </button>
-
-          <button
-            type="button"
-            id="tab-app-tutor"
-            onClick={() => setAppMode('tutor')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-              appMode === 'tutor'
-                ? 'bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-500/30'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-            }`}
-          >
-            <GraduationCap className="w-4 h-4 text-amber-300" />
-            <span>AI Tutor Mode</span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/30 text-indigo-200 border border-indigo-400/30 font-semibold">
-              Step Verifier
-            </span>
-          </button>
-        </div>
-      </div>
-
-      {/* Mode-Specific Views */}
-      {appMode === 'tutor' ? (
-        <TutorMode />
-      ) : (
-        <>
           {/* Input Mode Selector Tabs */}
           <div className="flex items-center justify-center">
-            <div className="inline-flex p-1.5 bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-inner gap-1">
+            <div className="inline-flex p-1.5 bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-inner gap-1">
               <button
                 type="button"
                 id="tab-mode-text"
@@ -247,7 +227,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Main Interactive Input Card */}
+          {/* Main Solver Input Card */}
           <div className="bg-slate-900/70 border border-slate-800 rounded-3xl p-6 sm:p-8 backdrop-blur-2xl shadow-2xl shadow-black/50 space-y-5">
             {/* Domain selection pills */}
             <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800/70">
@@ -276,29 +256,25 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Dynamic Mode Content */}
+            {/* Input Content based on mode */}
             {inputMode === 'text' && (
               <div className="space-y-4">
                 <div className="space-y-2">
                   <label htmlFor="math-problem-input" className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                     Mathematical Expression (LaTeX or String)
                   </label>
-                  <div className="relative">
-                    <textarea
-                      id="math-problem-input"
-                      rows={3}
-                      value={problemText}
-                      onChange={(e) => setProblemText(e.target.value)}
-                      placeholder="Enter formula, e.g. \int_{0}^{2} x^2 dx, or 2x^2 - 8 = 0"
-                      className="w-full bg-slate-950/80 border border-slate-700/80 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-2xl p-4 text-slate-100 font-mono text-base placeholder-slate-600 outline-none transition-all resize-y"
-                    />
-                  </div>
+                  <textarea
+                    id="math-problem-input"
+                    rows={3}
+                    value={problemText}
+                    onChange={(e) => setProblemText(e.target.value)}
+                    placeholder="Enter formula, e.g. \\int_{0}^{2} x^2 dx, or 2x^2 - 8 = 0"
+                    className="w-full bg-slate-950/80 border border-slate-700/80 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-2xl p-4 text-slate-100 font-mono text-base placeholder-slate-600 outline-none transition-all resize-y"
+                  />
                 </div>
 
-                {/* Quick-insert Symbol Toolbar */}
                 <MathToolbar onInsert={handleInsertSnippet} />
 
-                {/* Live KaTeX Preview */}
                 {problemText.trim() && (
                   <div className="p-4 bg-slate-950/50 border border-slate-800/80 rounded-2xl space-y-1">
                     <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
@@ -326,9 +302,8 @@ export default function HomePage() {
               />
             )}
 
-            {/* Action Controls & Presets */}
+            {/* Presets and Submit */}
             <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-              {/* Quick example presets */}
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="text-xs text-slate-500 flex items-center gap-1 mr-1">
                   <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
@@ -350,13 +325,12 @@ export default function HomePage() {
                 ))}
               </div>
 
-              {/* Primary Submit Button */}
               <button
                 type="button"
                 id="btn-solve-problem"
                 onClick={() => handleSolve()}
                 disabled={isLoading || !problemText.trim()}
-                className="px-6 py-3 rounded-2xl bg-gradient-to-r from-indigo-500 via-indigo-600 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-semibold text-sm shadow-xl shadow-indigo-500/25 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
+                className="px-6 py-3 rounded-2xl bg-gradient-to-r from-indigo-500 via-indigo-600 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-semibold text-sm shadow-xl shadow-indigo-500/25 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
                 {isLoading ? (
                   <>
@@ -367,9 +341,6 @@ export default function HomePage() {
                   <>
                     <Calculator className="w-4 h-4" />
                     <span>Solve Expression</span>
-                    <kbd className="hidden sm:inline text-[10px] bg-indigo-700/50 px-1.5 py-0.5 rounded text-indigo-200 border border-indigo-500/30">
-                      Ctrl+↵
-                    </kbd>
                   </>
                 )}
               </button>
@@ -377,13 +348,9 @@ export default function HomePage() {
           </div>
 
           {/* Solutions & Derivations Display */}
-          <SolutionViewer
-            response={solution}
-            isLoading={isLoading}
-            error={errorMessage}
-          />
+          <SolutionViewer response={solution} isLoading={isLoading} error={errorMessage} />
 
-          {/* Recent Query History Drawer */}
+          {/* Query History Drawer */}
           <HistoryDrawer
             items={history}
             onSelect={(item) => {
@@ -393,8 +360,147 @@ export default function HomePage() {
             }}
             onClear={clearHistory}
           />
-        </>
+        </div>
       )}
-    </div>
+
+      {/* View: AI Tutor Workspace */}
+      {activeTab === 'tutor' && (
+        <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-300">
+          <TutorMode />
+        </div>
+      )}
+
+      {/* View: PDF Homework Helper (Phase 4 Placeholder) */}
+      {activeTab === 'pdf_helper' && (
+        <div className="max-w-4xl mx-auto py-12 text-center space-y-6 animate-in fade-in duration-300">
+          <div className="w-16 h-16 mx-auto rounded-3xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+            <FileText className="w-8 h-8" />
+          </div>
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-400 text-xs font-semibold">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Phase 4 Module</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-white">PDF Homework Helper Workspace</h2>
+            <p className="text-sm text-slate-400 max-w-lg mx-auto">
+              Upload multi-page textbook PDFs, use the bounding-box lasso tool to crop questions, and solve them side-by-side with full document annotation tools.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* View: Graphing Calculator (Phase 5 Placeholder) */}
+      {activeTab === 'graphing' && (
+        <div className="max-w-4xl mx-auto py-12 text-center space-y-6 animate-in fade-in duration-300">
+          <div className="w-16 h-16 mx-auto rounded-3xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+            <TrendingUp className="w-8 h-8" />
+          </div>
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-400 text-xs font-semibold">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Phase 5 Module</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-white">Interactive 2D & 3D Graphing Canvas</h2>
+            <p className="text-sm text-slate-400 max-w-lg mx-auto">
+              Plot explicit, implicit, polar, and parametric functions. Inspect critical points, calculate tangent line slopes, and visualize 3D multivariable surfaces.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* View: 45+ Calculators (Phase 5 Placeholder) */}
+      {activeTab === 'calculators' && (
+        <div className="max-w-4xl mx-auto py-12 text-center space-y-6 animate-in fade-in duration-300">
+          <div className="w-16 h-16 mx-auto rounded-3xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+            <Grid3X3 className="w-8 h-8" />
+          </div>
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-400 text-xs font-semibold">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Phase 5 Module</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-white">45+ Specialized Subject Calculators</h2>
+            <p className="text-sm text-slate-400 max-w-lg mx-auto">
+              Dedicated calculators for Fractions, Polynomial Factoring, Quadratic Equations, Derivatives, Integrals, Limits, Matrix RREF, Normal Distribution, and Physics.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* View: Notebooks & Study Suite (Phase 6 Placeholder) */}
+      {activeTab === 'notebooks' && (
+        <div className="max-w-4xl mx-auto py-12 text-center space-y-6 animate-in fade-in duration-300">
+          <div className="w-16 h-16 mx-auto rounded-3xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+            <BookOpen className="w-8 h-8" />
+          </div>
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-400 text-xs font-semibold">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Phase 6 Module</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-white">Subject Notebooks & Study Suite</h2>
+            <p className="text-sm text-slate-400 max-w-lg mx-auto">
+              Organize solved problems into class notebooks, generate digital flashcards automatically, and test yourself with adaptive diagnostic quizzes.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* View: Settings */}
+      {activeTab === 'settings' && (
+        <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-300">
+          <div className="border-b border-slate-800 pb-4">
+            <h2 className="text-2xl font-bold text-white">Account & Preferences</h2>
+            <p className="text-xs text-slate-400">Configure application appearance and calculation preferences.</p>
+          </div>
+
+          <div className="space-y-4">
+            <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3">
+              <h3 className="text-sm font-semibold text-slate-200">User Profile</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div>
+                  <span className="text-slate-500">Username:</span>
+                  <div className="font-mono text-slate-200 mt-1">{user?.username || 'admin'}</div>
+                </div>
+                <div>
+                  <span className="text-slate-500">Role:</span>
+                  <div className="text-indigo-400 font-semibold mt-1">{user?.role || 'Administrator'}</div>
+                </div>
+                <div>
+                  <span className="text-slate-500">Subscription Tier:</span>
+                  <div className="text-emerald-400 font-semibold mt-1">{user?.plan || 'Prime Pro'} (Active)</div>
+                </div>
+                <div>
+                  <span className="text-slate-500">Authentication Method:</span>
+                  <div className="text-slate-300 mt-1">Static Development Build (admin / admin)</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3">
+              <h3 className="text-sm font-semibold text-slate-200">Mathematical Engine Preferences</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div>
+                  <label className="text-slate-400 block mb-1.5">Angle Unit:</label>
+                  <select className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 outline-none">
+                    <option>Radians (rad)</option>
+                    <option>Degrees (°)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-slate-400 block mb-1.5">Decimal Precision:</label>
+                  <select className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 outline-none">
+                    <option>6 Decimal Places</option>
+                    <option>4 Decimal Places</option>
+                    <option>8 Decimal Places</option>
+                    <option>10 Decimal Places</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </AppShell>
   );
 }
