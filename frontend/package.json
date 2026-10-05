@@ -2,6 +2,8 @@
   "name": "frontend",
   "version": "0.1.0",
   "private": true,
+  "description": "Infinix Math — AI-Powered Interactive Math Solver & Socratic Tutor",
+  "author": "Infinix Math Team",
   "main": "electron/main.js",
   "scripts": {
     "dev": "next dev",
