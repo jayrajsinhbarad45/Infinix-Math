@@ -221,69 +221,88 @@ export const SolverWorkspace: React.FC = () => {
   // -----------------------------------------------------------------------
   // Voice dictation — Web Speech API
   // -----------------------------------------------------------------------
-  const toggleVoice = () => {
+  const toggleVoice = async () => {
     if (isListening) {
       recognitionRef.current?.stop();
+      setIsListening(false);
       return;
+    }
+
+    // Explicitly prompt for microphone permission on Android WebView
+    if (typeof navigator !== 'undefined' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (err) {
+        console.warn('Microphone permission prompt notice:', err);
+      }
     }
 
     const SpeechRecognitionClass =
       window.SpeechRecognition || window.webkitSpeechRecognition;
 
     if (!SpeechRecognitionClass) {
-      setVoiceError('Voice input is not supported in this browser. Please use Chrome or Edge.');
+      setVoiceError('Speech recognition is not supported in this WebView. Please use the Virtual Math Keyboard.');
       return;
     }
 
     setVoiceError(null);
     setVoiceTranscript('');
 
-    const recognition = new SpeechRecognitionClass();
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    recognition.lang = 'en-US';
+    try {
+      const recognition = new SpeechRecognitionClass();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
 
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let interim = '';
-      let finalText = '';
-      for (let i = 0; i < event.results.length; i++) {
-        const result = event.results[i];
-        if (result.isFinal) {
-          finalText += result[0].transcript;
-        } else {
-          interim += result[0].transcript;
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
+        let interim = '';
+        let finalText = '';
+        for (let i = 0; i < event.results.length; i++) {
+          const result = event.results[i];
+          if (result.isFinal) {
+            finalText += result[0].transcript;
+          } else {
+            interim += result[0].transcript;
+          }
         }
-      }
 
-      // Show interim as preview
-      setVoiceTranscript(interim || finalText);
+        setVoiceTranscript(interim || finalText);
 
-      // On final result — convert to LaTeX and insert
-      if (finalText) {
-        const converted = spokenMathToLatex(finalText);
-        setProblemInput((prev) => {
-          const input = inputRef.current;
-          if (!input) return prev + converted;
-          const pos = input.selectionStart ?? prev.length;
-          return prev.slice(0, pos) + converted + prev.slice(pos);
-        });
+        if (finalText) {
+          const converted = spokenMathToLatex(finalText);
+          setProblemInput((prev) => {
+            const input = inputRef.current;
+            if (!input) return prev + converted;
+            const pos = input.selectionStart ?? prev.length;
+            return prev.slice(0, pos) + converted + prev.slice(pos);
+          });
+          setVoiceTranscript('');
+        }
+      };
+
+      recognition.onerror = (event: { error: string }) => {
+        if (event.error === 'not-allowed') {
+          setVoiceError('Microphone permission was not allowed. Please allow mic permission in Android App Settings.');
+        } else if (event.error === 'no-speech') {
+          setVoiceError('No speech detected. Please speak closer to your microphone.');
+        } else {
+          setVoiceError(`Voice input notice: ${event.error}. You can also use the virtual Math Keyboard.`);
+        }
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
         setVoiceTranscript('');
-      }
-    };
+      };
 
-    recognition.onerror = (event: { error: string }) => {
-      setVoiceError(`Mic error: ${event.error}. Please allow microphone access.`);
+      recognitionRef.current = recognition;
+      recognition.start();
+      setIsListening(true);
+    } catch {
+      setVoiceError('Could not initialize speech recognition. Please use the Math Keyboard.');
       setIsListening(false);
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-      setVoiceTranscript('');
-    };
-
-    recognitionRef.current = recognition;
-    recognition.start();
-    setIsListening(true);
+    }
   };
 
   // Cleanup on unmount

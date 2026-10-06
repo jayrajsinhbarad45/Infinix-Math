@@ -21,6 +21,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
   const [ocrResult, setOcrResult] = useState<OcrExtractResponse | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   // Handle file selection
   const handleFileChange = (file: File) => {
@@ -135,33 +136,68 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
           }
         }}
       />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        id="math-camera-snap-input"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files && e.target.files[0]) {
+            handleFileChange(e.target.files[0]);
+          }
+        }}
+      />
 
       {!previewUrl ? (
-        <div
-          id="dropzone-area"
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-          className={`relative border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all duration-200 ${
-            isDragging
-              ? 'border-indigo-500 bg-indigo-950/30 scale-[1.01]'
-              : 'border-slate-700/80 bg-slate-900/40 hover:border-indigo-500/50 hover:bg-slate-900/70'
-          }`}
-        >
-          <div className="flex flex-col items-center justify-center space-y-3">
-            <div className="w-12 h-12 rounded-full bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform">
-              <UploadCloud className="w-6 h-6" />
+        <div className="space-y-3">
+          <div
+            id="dropzone-area"
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+            className={`relative border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all duration-200 ${
+              isDragging
+                ? 'border-indigo-500 bg-indigo-950/30 scale-[1.01]'
+                : 'border-slate-700/80 bg-slate-900/40 hover:border-indigo-500/50 hover:bg-slate-900/70'
+            }`}
+          >
+            <div className="flex flex-col items-center justify-center space-y-3">
+              <div className="w-12 h-12 rounded-full bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform">
+                <UploadCloud className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-slate-200">
+                  Drag and drop equation photo, or{' '}
+                  <span className="text-indigo-400 underline underline-offset-2">browse files</span>
+                </p>
+                <p className="text-xs text-slate-400 mt-1">
+                  Supports PNG, JPEG, WebP up to 10MB • <kbd className="px-1 py-0.5 bg-slate-800 rounded text-slate-300 border border-slate-700">Ctrl+V</kbd> to paste
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-medium text-slate-200">
-                Drag and drop equation photo, or{' '}
-                <span className="text-indigo-400 underline underline-offset-2">browse</span>
-              </p>
-              <p className="text-xs text-slate-400 mt-1">
-                Supports PNG, JPEG, WebP up to 10MB • <kbd className="px-1 py-0.5 bg-slate-800 rounded text-slate-300 border border-slate-700">Ctrl+V</kbd> to paste screenshot
-              </p>
-            </div>
+          </div>
+
+          {/* Mobile Camera Direct Action Button */}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => cameraInputRef.current?.click()}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-indigo-600/20 border border-indigo-500/40 hover:bg-indigo-600/30 text-indigo-300 text-xs font-semibold transition-all cursor-pointer"
+            >
+              <Camera className="w-4 h-4 text-indigo-400" />
+              <span>Take Photo with Camera</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-slate-800/80 border border-slate-700 hover:bg-slate-800 text-slate-300 text-xs font-semibold transition-all cursor-pointer"
+            >
+              <UploadCloud className="w-4 h-4 text-slate-400" />
+              <span>Choose from Gallery</span>
+            </button>
           </div>
         </div>
       ) : (

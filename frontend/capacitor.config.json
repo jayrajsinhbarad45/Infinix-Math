@@ -3,6 +3,7 @@
   "appName": "Infinix Math",
   "webDir": "out",
   "server": {
-    "androidScheme": "https"
+    "androidScheme": "http",
+    "cleartext": true
   }
 }

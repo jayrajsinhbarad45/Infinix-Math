@@ -4,22 +4,58 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   BookOpen,
+  CheckCircle2,
   FileText,
   Grid3X3,
   Infinity as InfinityIcon,
   Loader2,
+  RefreshCw,
   Sparkles,
   TrendingUp,
+  Wifi,
+  XCircle,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import AppShell, { WorkspaceTab } from '../components/AppShell';
 import SolverWorkspace from '../components/SolverWorkspace';
 import TutorMode from '../components/TutorMode';
+import { checkBackendHealth, getApiBaseUrl, setApiBaseUrl } from '../lib/api';
 
 export default function DashboardPage() {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('solver');
+
+  // Backend connection settings state
+  const [serverUrlInput, setServerUrlInput] = useState('');
+  const [connStatus, setConnStatus] = useState<'idle' | 'testing' | 'connected' | 'error'>('idle');
+  const [connMessage, setConnMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    setServerUrlInput(getApiBaseUrl());
+  }, []);
+
+  const handleTestAndSaveConnection = async () => {
+    setConnStatus('testing');
+    setConnMessage(null);
+    const target = serverUrlInput.trim();
+    setApiBaseUrl(target);
+    try {
+      const health = await checkBackendHealth();
+      if (health.status === 'healthy' || health.service) {
+        setConnStatus('connected');
+        setConnMessage(`Successfully connected to ${target || 'default'}! CAS Engine is live.`);
+      } else {
+        setConnStatus('error');
+        setConnMessage('Server reached, but reported status is offline.');
+      }
+    } catch (err: unknown) {
+      setConnStatus('error');
+      setConnMessage(
+        err instanceof Error ? err.message : 'Could not reach server. Verify IP and port.'
+      );
+    }
+  };
 
   // Route protection: redirect to /login if unauthenticated
   useEffect(() => {
@@ -182,6 +218,95 @@ export default function DashboardPage() {
                     <option>8 Decimal Places</option>
                     <option>10 Decimal Places</option>
                   </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Backend Server Configuration (Mobile / Desktop) */}
+            <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                    <Wifi className="w-4 h-4 text-indigo-400" />
+                    <span>Backend Server Connection</span>
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Configure the Python FastAPI / SymPy server URL. Required for mobile APK to connect to your computer.
+                  </p>
+                </div>
+                {connStatus === 'connected' && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-950/40 border border-emerald-800/50 text-emerald-300 text-xs font-semibold">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Connected</span>
+                  </span>
+                )}
+                {connStatus === 'error' && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-950/40 border border-amber-800/50 text-amber-300 text-xs font-semibold">
+                    <XCircle className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Unreachable</span>
+                  </span>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    value={serverUrlInput}
+                    onChange={(e) => setServerUrlInput(e.target.value)}
+                    placeholder="http://10.114.172.74:8000"
+                    className="flex-1 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-2 text-xs font-mono text-slate-200 outline-none"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleTestAndSaveConnection}
+                      disabled={connStatus === 'testing'}
+                      className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1.5 shrink-0"
+                    >
+                      {connStatus === 'testing' ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Testing...</span>
+                        </>
+                      ) : (
+                        <span>Save & Test</span>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setServerUrlInput('http://10.114.172.74:8000');
+                        setApiBaseUrl('http://10.114.172.74:8000');
+                        handleTestAndSaveConnection();
+                      }}
+                      title="Set to your computer's local Wi-Fi IP"
+                      className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition-colors shrink-0"
+                    >
+                      Use PC Wi-Fi IP
+                    </button>
+                  </div>
+                </div>
+
+                {connMessage && (
+                  <div
+                    className={`text-xs p-2.5 rounded-xl border ${
+                      connStatus === 'connected'
+                        ? 'bg-emerald-950/30 border-emerald-800/40 text-emerald-300'
+                        : 'bg-amber-950/30 border-amber-800/40 text-amber-300'
+                    }`}
+                  >
+                    {connMessage}
+                  </div>
+                )}
+
+                <div className="text-[11px] text-slate-400 space-y-1 pt-2 border-t border-slate-800/60 leading-relaxed">
+                  <p>
+                    💡 <strong>Phone Setup:</strong> Connect phone to the same Wi-Fi as your computer, then tap <strong>&ldquo;Use PC Wi-Fi IP&rdquo;</strong> (<code className="text-indigo-300 font-mono">http://10.114.172.74:8000</code>).
+                  </p>
+                  <p>
+                    ⚡ <strong>On-Device Offline Mode:</strong> If disconnected, Infinix Math automatically computes solutions locally on your phone without showing errors!
+                  </p>
                 </div>
               </div>
             </div>
