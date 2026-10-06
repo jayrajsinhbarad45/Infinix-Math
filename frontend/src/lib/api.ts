@@ -16,7 +16,7 @@ export function getApiBaseUrl(): string {
   if (envUrl && envUrl.trim()) {
     return envUrl.trim().replace(/\/+$/, '');
   }
-  return 'http://localhost:8000';
+  return 'https://infinix-math-backend.onrender.com';
 }
 
 export function setApiBaseUrl(url: string): void {
