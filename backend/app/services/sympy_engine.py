@@ -22,26 +22,26 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Standard real & integer symbols
+# Standard algebraic symbols
 DEFAULT_SYMBOLS: Dict[str, Symbol] = {
-    "x": symbols("x", real=True),
-    "y": symbols("y", real=True),
-    "z": symbols("z", real=True),
-    "t": symbols("t", real=True),
-    "u": symbols("u", real=True),
-    "v": symbols("v", real=True),
-    "w": symbols("w", real=True),
-    "a": symbols("a", real=True),
-    "b": symbols("b", real=True),
-    "c": symbols("c", real=True),
-    "d": symbols("d", real=True),
-    "k": symbols("k", real=True),
-    "m": symbols("m", real=True),
+    "x": symbols("x"),
+    "y": symbols("y"),
+    "z": symbols("z"),
+    "t": symbols("t"),
+    "u": symbols("u"),
+    "v": symbols("v"),
+    "w": symbols("w"),
+    "a": symbols("a"),
+    "b": symbols("b"),
+    "c": symbols("c"),
+    "d": symbols("d"),
+    "k": symbols("k"),
+    "m": symbols("m"),
     "n": symbols("n", integer=True),
-    "p": symbols("p", real=True),
-    "q": symbols("q", real=True),
-    "r": symbols("r", real=True),
-    "s": symbols("s", real=True),
+    "p": symbols("p"),
+    "q": symbols("q"),
+    "r": symbols("r"),
+    "s": symbols("s"),
     "theta": symbols("theta", real=True),
     "phi": symbols("phi", real=True),
     "pi": pi,
@@ -297,10 +297,10 @@ class SympyEngine:
                         sides = eq_str.split("=")
                         lhs = self.parse_expression(sides[0])
                         rhs = self.parse_expression(sides[1]) if len(sides) > 1 else sympy.Integer(0)
-                        eq = Eq(lhs, rhs)
+                        eq = Eq(lhs, rhs, evaluate=False)
                     else:
                         expr = self.parse_expression(eq_str)
-                        eq = Eq(expr, 0)
+                        eq = Eq(expr, 0, evaluate=False)
                     parsed_eqs.append(eq)
                     all_symbols.update(eq.free_symbols)
                     steps.append(f"Equation ({i}): $${latex(eq)}$$")
@@ -333,20 +333,20 @@ class SympyEngine:
                 parts = text.split("=")
                 lhs = self.parse_expression(parts[0])
                 rhs = self.parse_expression(parts[1]) if len(parts) > 1 else sympy.Integer(0)
-                eq = Eq(lhs, rhs)
+                eq = Eq(lhs, rhs, evaluate=False)
                 norm_expr = lhs - rhs
             else:
                 norm_expr = self.parse_expression(text)
-                eq = Eq(norm_expr, 0)
+                eq = Eq(norm_expr, 0, evaluate=False)
 
             steps.append(f"Given Equation: $${latex(eq)}$$")
-            if eq.rhs != 0:
+            if getattr(eq, "rhs", 0) != 0:
                 steps.append(f"Normalized Form: $${latex(norm_expr)} = 0$$")
 
             # Determine variable to solve for
             free_vars = list(norm_expr.free_symbols)
             if variable_str:
-                target_var = symbols(variable_str, real=True)
+                target_var = symbols(variable_str)
             elif free_vars:
                 # Prefer x, then y, then first symbol
                 var_names = [v.name for v in free_vars]
@@ -355,9 +355,42 @@ class SympyEngine:
                 else:
                     target_var = sorted(free_vars, key=lambda v: v.name)[0]
             else:
-                target_var = symbols("x", real=True)
+                target_var = symbols("x")
 
             steps.append(f"Solving with respect to variable $${latex(target_var)}$$")
+
+            # Check for polynomial structure (linear, quadratic, factorable) to provide detailed steps
+            try:
+                poly = sympy.Poly(norm_expr, target_var)
+                deg = poly.degree()
+                if deg == 2:
+                    a = poly.coeff_monomial(target_var**2)
+                    b = poly.coeff_monomial(target_var)
+                    c = poly.coeff_monomial(1)
+                    disc = b**2 - 4 * a * c
+                    steps.append(f"Standard Quadratic Form: $$a{latex(target_var)}^2 + b{latex(target_var)} + c = 0$$ with $$a = {latex(a)},\\ b = {latex(b)},\\ c = {latex(c)}$$")
+                    steps.append(f"Compute Discriminant: $$\\Delta = b^2 - 4ac = ({latex(b)})^2 - 4({latex(a)})({latex(c)}) = {latex(disc)}$$")
+                    if disc > 0:
+                        steps.append("Nature of Roots: $$\\Delta > 0$$, which yields two distinct real solutions.")
+                    elif disc == 0:
+                        steps.append("Nature of Roots: $$\\Delta = 0$$, which yields a single repeated real solution.")
+                    else:
+                        steps.append("Nature of Roots: $$\\Delta < 0$$, which yields two complex conjugate solutions.")
+                    steps.append(f"Quadratic Formula: $${latex(target_var)} = \\frac{{-b \\pm \\sqrt{{\\Delta}}}}{{2a}} = \\frac{{-({latex(b)}) \\pm \\sqrt{{{latex(disc)}}}}}{{2({latex(a)})}}$$")
+                elif deg == 1:
+                    a = poly.coeff_monomial(target_var)
+                    b = poly.coeff_monomial(1)
+                    steps.append(f"Linear Form: $${latex(a)}{latex(target_var)} + ({latex(b)}) = 0$$")
+                    steps.append(f"Isolate Variable: $${latex(a)}{latex(target_var)} = {latex(-b)}$$")
+                    if a != 1:
+                        steps.append(f"Divide by Coefficient: $${latex(target_var)} = \\frac{{{latex(-b)}}}{{{latex(a)}}}$$")
+                elif deg > 2:
+                    factored = factor(norm_expr)
+                    if factored != norm_expr:
+                        steps.append(f"Factored Polynomial: $${latex(factored)} = 0$$")
+            except Exception:
+                pass
+
             solutions = solve(norm_expr, target_var)
 
             if not solutions:
@@ -398,16 +431,16 @@ class SympyEngine:
 
             # Determine derivative variable
             if variable_str:
-                var = symbols(variable_str, real=True)
+                var = symbols(variable_str)
             elif extracted_var:
-                var = symbols(extracted_var, real=True)
+                var = symbols(extracted_var)
             else:
                 free_vars = list(expr.free_symbols)
                 if free_vars:
                     target = next((v for v in free_vars if v.name == "x"), free_vars[0])
                     var = target
                 else:
-                    var = symbols("x", real=True)
+                    var = symbols("x")
 
             steps = [
                 f"Target Function: $$f({latex(var)}) = {latex(expr)}$$",
@@ -472,12 +505,12 @@ class SympyEngine:
 
             # Determine integration variable
             if variable_str:
-                var = symbols(variable_str, real=True)
+                var = symbols(variable_str)
             elif int_var_str:
-                var = symbols(int_var_str, real=True)
+                var = symbols(int_var_str)
             else:
                 free = list(expr.free_symbols)
-                var = next((v for v in free if v.name == "x"), free[0] if free else symbols("x", real=True))
+                var = next((v for v in free if v.name == "x"), free[0] if free else symbols("x"))
 
             steps = [f"Integrand: $$f({latex(var)}) = {latex(expr)}$$"]
 

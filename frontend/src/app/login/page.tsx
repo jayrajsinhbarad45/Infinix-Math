@@ -91,8 +91,8 @@ export default function LoginPage() {
         <div className="flex flex-col items-center text-center space-y-3 mb-8">
           <div className="relative group">
             <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 rounded-2xl blur-md opacity-70 group-hover:opacity-100 transition duration-500" />
-            <div className="relative w-16 h-16 rounded-2xl bg-slate-950 border border-indigo-500/40 flex items-center justify-center shadow-inner">
-              <InfinityIcon className="w-8 h-8 text-indigo-400 group-hover:scale-110 transition-transform duration-300" />
+            <div className="relative w-16 h-16 rounded-2xl bg-slate-950 border border-indigo-500/40 flex items-center justify-center shadow-inner overflow-hidden">
+              <img src="/logo.png" alt="Infinix Math Logo" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
             </div>
           </div>
 

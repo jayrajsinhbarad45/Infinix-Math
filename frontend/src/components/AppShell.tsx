@@ -93,10 +93,8 @@ export const AppShell: React.FC<AppShellProps> = ({
         <div>
           <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800/80">
             <div className="flex items-center gap-3 overflow-hidden">
-              <div className="w-9 h-9 shrink-0 rounded-xl bg-gradient-to-tr from-indigo-600 via-violet-600 to-fuchsia-600 p-[1.5px] shadow-lg shadow-indigo-500/25">
-                <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center text-indigo-400">
-                  <InfinityIcon className="w-5 h-5 text-indigo-400" />
-                </div>
+              <div className="w-9 h-9 shrink-0 rounded-xl overflow-hidden shadow-lg shadow-indigo-500/25 border border-indigo-500/40 bg-slate-950">
+                <img src="/logo.png" alt="Infinix Math Logo" className="w-full h-full object-cover" />
               </div>
               {!isCollapsed && (
                 <div className="whitespace-nowrap">
@@ -105,7 +103,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                   </span>
                   <div className="flex items-center gap-1.5">
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-indigo-400">
-                      Root of Infinity
+                      AI Math Engine
                     </span>
                   </div>
                 </div>

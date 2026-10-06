@@ -118,6 +118,15 @@ async def solve_math_problem(request: SolveRequest) -> SolveResponse:
             domain=domain_val,
             execution_time_ms=elapsed_ms,
             error=str(sym_err),
+            structured_steps=[
+                MathStep(
+                    step_number=1,
+                    description="Parsing Notice",
+                    latex=f"\\text{{Unable to parse expression: }} {str(sym_err)}",
+                    rule="Input Validation",
+                    is_symbolically_verified=False,
+                )
+            ],
         )
     except Exception as exc:
         logger.exception("Unexpected error solving %r", problem_text)
@@ -130,4 +139,13 @@ async def solve_math_problem(request: SolveRequest) -> SolveResponse:
             domain=domain_val,
             execution_time_ms=elapsed_ms,
             error=str(exc),
+            structured_steps=[
+                MathStep(
+                    step_number=1,
+                    description="Computation Notice",
+                    latex=f"\\text{{Internal solver notice: }} {str(exc)}",
+                    rule="System Error Handling",
+                    is_symbolically_verified=False,
+                )
+            ],
         )

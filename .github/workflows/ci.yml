@@ -117,17 +117,29 @@ jobs:
       - name: Sync Capacitor Android
         run: npx cap sync android
 
-      - name: Build Android Debug APK with Gradle
+      - name: Generate Production Release Keystore
+        run: |
+          cd android/app
+          keytool -genkey -v -keystore infinix-release.keystore -alias infinixmath -keyalg RSA -keysize 2048 -validity 10000 -storepass infinix123 -keypass infinix123 -dname "CN=Infinix Math AI, OU=Mobile, O=Infinix Math, L=San Francisco, ST=California, C=US"
+
+      - name: Build Android Release APK with Gradle
         run: |
           cd android
           chmod +x ./gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Stage APK Artifact
+        run: |
+          mkdir -p ../dist-apk
+          APK_FILE=$(find android/app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          echo "Found APK at: $APK_FILE"
+          cp "$APK_FILE" "../dist-apk/Infinix-Math-v1.0.${{ github.run_number }}.apk"
 
       - name: Upload Android APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: InfinixMath-Android-APK
-          path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
+          name: Infinix-Math-v1.0.${{ github.run_number }}-APK
+          path: dist-apk/*.apk
           retention-days: 14
 
 

@@ -7,7 +7,7 @@ function createWindow() {
     height: 860,
     minWidth: 1024,
     minHeight: 700,
-    title: 'Infinix Math — Root of Infinity',
+    title: 'Infinix Math',
     backgroundColor: '#070b14',
     webPreferences: {
       nodeIntegration: false,

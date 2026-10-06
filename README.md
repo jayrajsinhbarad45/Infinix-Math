@@ -1,4 +1,4 @@
-# ♾️ Infinix Math (Root of Infinity)
+# ♾️ Infinix Math
 
 > **Next-Generation Interactive AI Math Solver & Tutor Engine**  
 > *Deterministic symbolic mathematical precision meets multimodal pedagogical intelligence.*

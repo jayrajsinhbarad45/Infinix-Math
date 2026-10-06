@@ -3,9 +3,14 @@ import './globals.css';
 import { AuthProvider } from '../context/AuthContext';
 
 export const metadata: Metadata = {
-  title: 'Infinix Math | Root of Infinity — AI Math Solver & Tutor',
+  title: 'Infinix Math — AI Math Solver & Tutor',
   description:
     'Interactive AI-powered math solver and tutor pairing Google Gemini multimodal vision with SymPy deterministic symbolic verification.',
+  icons: {
+    icon: '/logo.png',
+    shortcut: '/logo.png',
+    apple: '/logo.png',
+  },
   keywords: [
     'Math Solver',
     'SymPy',

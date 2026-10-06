@@ -33,10 +33,8 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen bg-[#070b14] flex flex-col items-center justify-center space-y-4 select-none">
         <div className="relative">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 via-violet-600 to-fuchsia-600 p-[1.5px] shadow-xl shadow-indigo-500/30">
-            <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center text-indigo-400">
-              <InfinityIcon className="w-8 h-8 text-indigo-400 animate-pulse" />
-            </div>
+          <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-xl shadow-indigo-500/30 border border-indigo-500/40 bg-slate-950">
+            <img src="/logo.png" alt="Infinix Math Logo" className="w-full h-full object-cover animate-pulse" />
           </div>
         </div>
         <div className="text-sm font-semibold text-slate-400 flex items-center gap-2">
