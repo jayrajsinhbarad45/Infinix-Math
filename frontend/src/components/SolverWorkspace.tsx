@@ -161,11 +161,19 @@ function cleanStepLatex(raw: string): string {
 
 function cleanStepDescription(raw: string, fallbackNumber: number): string {
   if (!raw) return `Step ${fallbackNumber}`;
-  const textOnly = raw.replace(/\$\$[\s\S]*?\$\$/g, '').replace(/\$[^\$]*?\$/g, '').trim();
-  if (textOnly) {
-    return textOnly.replace(/:\s*$/, '').trim();
+  let s = raw.trim().replace(/:\s*$/, '');
+
+  // If already contains inline math $...$, preserve it
+  if (s.includes('$')) {
+    return s;
   }
-  return `Step ${fallbackNumber}`;
+
+  // Convert equations with carets or polynomials into inline math $...$
+  s = s.replace(/(a[a-zA-Z0-9_]*\^2\s*\+\s*b[a-zA-Z0-9_]*\s*\+\s*c\s*=\s*0)/gi, '$$$1$$');
+  s = s.replace(/(b\^2\s*-\s*4ac)/gi, '$$$1$$');
+  s = s.replace(/\b([a-zA-Z]\^[0-9]+)\b/g, '$$$1$$');
+
+  return s;
 }
 
 export const SolverWorkspace: React.FC = () => {
@@ -618,7 +626,7 @@ export const SolverWorkspace: React.FC = () => {
                           </div>
                           <div className="space-y-2 text-xs sm:text-sm text-slate-200 flex-1 min-w-0">
                             <div className="font-semibold text-slate-200 text-sm">
-                              {stepTitle}
+                              <MathRenderer content={stepTitle} displayMode={false} />
                             </div>
                             {stepMath && (
                               <div className="overflow-x-auto p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 text-indigo-200 shadow-inner">

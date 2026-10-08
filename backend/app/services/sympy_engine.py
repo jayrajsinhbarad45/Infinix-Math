@@ -414,14 +414,14 @@ class SympyEngine:
                     structured_steps = [
                         {
                             "step_number": 1,
-                            "description": f"Identify coefficients from standard form a{latex(target_var)}^2 + b{latex(target_var)} + c = 0",
+                            "description": f"Identify coefficients from standard form $a{latex(target_var)}^2 + b{latex(target_var)} + c = 0$",
                             "latex": f"a = {latex(a)}, \\quad b = {latex(b)}, \\quad c = {latex(c)}",
                             "rule": "Identification",
                             "is_symbolically_verified": True,
                         },
                         {
                             "step_number": 2,
-                            "description": "Calculate the discriminant (b^2 - 4ac)",
+                            "description": "Calculate the discriminant ($b^2 - 4ac$)",
                             "latex": f"\\Delta = ({latex(b)})^2 - 4({latex(a)})({latex(c)}) = {latex(disc)}",
                             "rule": "Discriminant",
                             "is_symbolically_verified": True,

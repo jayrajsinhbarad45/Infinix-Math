@@ -73,14 +73,14 @@ function formatOfflineQuadraticRoots(a: number, b: number, c: number, disc: numb
   const structured: MathStep[] = [
     {
       step_number: 1,
-      description: 'Identify coefficients from standard quadratic form ax² + bx + c = 0',
+      description: 'Identify coefficients from standard form $ax^2 + bx + c = 0$',
       latex: `a = ${a}, \\quad b = ${b}, \\quad c = ${c}`,
       rule: 'Identification',
       is_symbolically_verified: true,
     },
     {
       step_number: 2,
-      description: 'Calculate the discriminant (Δ = b² - 4ac)',
+      description: 'Calculate the discriminant ($b^2 - 4ac$)',
       latex: `\\Delta = (${b})^2 - 4(${a})(${c}) = ${disc}`,
       rule: 'Discriminant',
       is_symbolically_verified: true,
