@@ -68,132 +68,239 @@ function gcd(x: number, y: number): number {
   return x || 1;
 }
 
-function formatOfflineQuadraticRoots(a: number, b: number, c: number, disc: number): { solLatex: string; steps: MathStep[] } {
+function simplifyRadical(n: number): { outside: number; inside: number } {
+  if (n <= 0) return { outside: 0, inside: 0 };
+  let outside = 1;
+  let rem = n;
+  for (let d = 2; d * d <= rem; d++) {
+    while (rem % (d * d) === 0) {
+      outside *= d;
+      rem = Math.floor(rem / (d * d));
+    }
+  }
+  return { outside, inside: rem };
+}
+
+function gcd3(a: number, b: number, c: number): number {
+  return gcd(gcd(a, b), c);
+}
+
+function formatOfflineQuadraticRoots(
+  a: number,
+  b: number,
+  c: number,
+  disc: number,
+  varName: string = 'x'
+): { solLatex: string; steps: MathStep[] } {
   const twoA = 2 * a;
-  const structured: MathStep[] = [
-    {
-      step_number: 1,
-      description: 'Identify coefficients from standard form $ax^2 + bx + c = 0$',
-      latex: `a = ${a}, \\quad b = ${b}, \\quad c = ${c}`,
-      rule: 'Identification',
-      is_symbolically_verified: true,
-    },
-    {
-      step_number: 2,
-      description: 'Calculate the discriminant ($b^2 - 4ac$)',
-      latex: `\\Delta = (${b})^2 - 4(${a})(${c}) = ${disc}`,
-      rule: 'Discriminant',
-      is_symbolically_verified: true,
-    },
-  ];
+  const fourAc = 4 * a * c;
+  const bSq = b * b;
+  const D = disc;
 
-  let solLatex = '';
-  if (disc > 0) {
-    structured.push({
-      step_number: 3,
-      description: 'Since Δ > 0, the equation has two distinct real solutions',
-      latex: `\\Delta = ${disc} > 0`,
-      rule: 'Nature of Roots',
-      is_symbolically_verified: true,
-    });
-    structured.push({
-      step_number: 4,
-      description: 'Apply the quadratic formula',
-      latex: `x = \\frac{-b \\pm \\sqrt{\\Delta}}{2a} = \\frac{-(${b}) \\pm \\sqrt{${disc}}}{2(${a})}`,
-      rule: 'Quadratic Formula',
-      is_symbolically_verified: true,
-    });
-    const r1 = (-b + Math.sqrt(disc)) / twoA;
-    const r2 = (-b - Math.sqrt(disc)) / twoA;
-    const r1Str = Number.isInteger(r1) ? r1.toString() : r1.toFixed(3);
-    const r2Str = Number.isInteger(r2) ? r2.toString() : r2.toFixed(3);
-    solLatex = `x = ${r1Str}, \\quad x = ${r2Str}`;
-    structured.push({
-      step_number: 5,
-      description: 'Compute final roots',
-      latex: solLatex,
-      rule: 'Final Roots',
-      is_symbolically_verified: true,
-    });
-  } else if (disc === 0) {
-    structured.push({
-      step_number: 3,
-      description: 'Since Δ = 0, the equation has a single repeated real solution',
-      latex: `\\Delta = 0`,
-      rule: 'Nature of Roots',
-      is_symbolically_verified: true,
-    });
-    const r = -b / twoA;
-    const rStr = Number.isInteger(r) ? r.toString() : r.toFixed(3);
-    solLatex = `x = ${rStr}`;
-    structured.push({
-      step_number: 4,
-      description: 'Compute the single root',
-      latex: `x = \\frac{-(${b})}{2(${a})} = ${rStr}`,
-      rule: 'Final Root',
-      is_symbolically_verified: true,
-    });
+  // Step 1: Using the quadratic formula,
+  const step1: MathStep = {
+    step_number: 1,
+    description: 'Using the quadratic formula,',
+    latex: `${varName} = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}`,
+    rule: 'Quadratic Formula',
+    is_symbolically_verified: true,
+  };
+
+  // Step 2: Here,
+  const step2: MathStep = {
+    step_number: 2,
+    description: 'Here,',
+    latex: `a = ${a}, \\quad b = ${b}, \\quad c = ${c}`,
+    rule: 'Identification',
+    is_symbolically_verified: true,
+  };
+
+  // Step 3: Discriminant:
+  const bTermStr = b < 0 ? `(${b})^2` : `${b}^2`;
+  let discCalcStr = '';
+  if (fourAc < 0) {
+    discCalcStr = `D = ${bTermStr} - 4(${a})(${c}) = ${bSq} - (${fourAc}) = ${bSq} + ${-fourAc} = ${D}`;
+  } else if (fourAc > 0) {
+    discCalcStr = `D = ${bTermStr} - 4(${a})(${c}) = ${bSq} - ${fourAc} = ${D}`;
   } else {
-    // Complex roots: disc < 0
-    const posDisc = -disc;
-    structured.push({
-      step_number: 3,
-      description: 'Since Δ < 0, the equation has two complex conjugate solutions',
-      latex: `\\Delta = ${disc} < 0 \\implies \\text{Solutions involve imaginary unit } i = \\sqrt{-1}`,
-      rule: 'Nature of Roots',
-      is_symbolically_verified: true,
-    });
-    structured.push({
-      step_number: 4,
-      description: 'Apply the quadratic formula with imaginary unit',
-      latex: `x = \\frac{-b \\pm \\sqrt{\\Delta}}{2a} = \\frac{-(${b}) \\pm \\sqrt{${posDisc}}i}{2(${a})}`,
-      rule: 'Quadratic Formula',
-      is_symbolically_verified: true,
-    });
-
-    // Simplify radical: e.g. sqrt(176) = 4*sqrt(11)
-    let outside = 1;
-    let inside = posDisc;
-    for (let k = Math.floor(Math.sqrt(posDisc)); k >= 2; k--) {
-      if (inside % (k * k) === 0) {
-        outside *= k;
-        inside = Math.floor(inside / (k * k));
-        break;
-      }
-    }
-
-    const g = gcd(gcd(Math.abs(b), outside), Math.abs(twoA));
-    let redB = -b / g;
-    let redDen = twoA / g;
-    const redOutside = outside / g;
-    const redRadStr = inside === 1 ? (redOutside === 1 ? '' : `${redOutside}`) : redOutside === 1 ? `\\sqrt{${inside}}` : `${redOutside}\\sqrt{${inside}}`;
-
-    if (redDen < 0) {
-      redB = -redB;
-      redDen = -redDen;
-    }
-
-    const imagTerm = redRadStr ? `${redRadStr}i` : 'i';
-    if (redB === 0 && redDen === 1) {
-      solLatex = `x = \\pm ${imagTerm}`;
-    } else if (redB === 0) {
-      solLatex = `x = \\pm \\frac{${imagTerm}}{${redDen}}`;
-    } else if (redDen === 1) {
-      solLatex = `x = ${redB} \\pm ${imagTerm}`;
-    } else {
-      solLatex = `x = \\frac{${redB} \\pm ${imagTerm}}{${redDen}}`;
-    }
-
-    structured.push({
-      step_number: 5,
-      description: 'Simplify square root and reduce fraction to simplest form',
-      latex: solLatex,
-      rule: 'Final Simplification',
-      is_symbolically_verified: true,
-    });
+    discCalcStr = `D = ${bTermStr} - 4(${a})(${c}) = ${bSq} - 0 = ${D}`;
   }
 
-  return { solLatex, steps: structured };
+  const step3: MathStep = {
+    step_number: 3,
+    description: 'Discriminant:',
+    latex: discCalcStr,
+    rule: 'Discriminant',
+    is_symbolically_verified: true,
+  };
+
+  let step4: MathStep;
+  let step5: MathStep;
+  let solLatex = '';
+
+  if (D === 0) {
+    const g = gcd(Math.abs(b), Math.abs(twoA));
+    let num = -b / g;
+    let den = twoA / g;
+    if (den < 0) {
+      num = -num;
+      den = -den;
+    }
+    const res = den === 1 ? `${num}` : `\\frac{${num}}{${den}}`;
+    const bDisplay = b < 0 ? `-(${b})` : `-${b}`;
+
+    step4 = {
+      step_number: 4,
+      description: 'Therefore,',
+      latex: `${varName} = \\frac{${bDisplay}}{2(${a})} = ${res}`,
+      rule: 'Single Root',
+      is_symbolically_verified: true,
+    };
+    step5 = {
+      step_number: 5,
+      description: 'So the root is:',
+      latex: `${varName} = ${res}`,
+      rule: 'Final Root',
+      is_symbolically_verified: true,
+    };
+    solLatex = `${varName} = ${res}`;
+  } else if (D > 0) {
+    const { outside: k, inside: rem } = simplifyRadical(D);
+    if (rem === 1) {
+      // Perfect square root: sqrt(D) = k
+      const r1Num = -b + k;
+      const r2Num = -b - k;
+
+      const simplifyFrac = (n: number, d: number) => {
+        if (d < 0) {
+          n = -n;
+          d = -d;
+        }
+        const g = gcd(Math.abs(n), Math.abs(d));
+        n /= g;
+        d /= g;
+        return d === 1 ? `${n}` : `\\frac{${n}}{${d}}`;
+      };
+
+      const r1Str = simplifyFrac(r1Num, twoA);
+      const r2Str = simplifyFrac(r2Num, twoA);
+      const bDisplay = b < 0 ? `-(${b})` : `-${b}`;
+
+      step4 = {
+        step_number: 4,
+        description: 'Therefore,',
+        latex: `${varName} = \\frac{${bDisplay} \\pm ${k}}{${twoA}}`,
+        rule: 'Evaluate Roots',
+        is_symbolically_verified: true,
+      };
+      step5 = {
+        step_number: 5,
+        description: 'So the two roots are:',
+        latex: `${varName}_1 = ${r1Str}, \\quad ${varName}_2 = ${r2Str}`,
+        rule: 'Final Roots',
+        is_symbolically_verified: true,
+      };
+      solLatex = `${varName}_1 = ${r1Str}, \\quad ${varName}_2 = ${r2Str}`;
+    } else {
+      // Non-square radical: k * sqrt(rem)
+      const g = gcd3(Math.abs(b), k, Math.abs(twoA));
+      let bRed = -b / g;
+      const kRed = k / g;
+      let denRed = twoA / g;
+      if (denRed < 0) {
+        bRed = -bRed;
+        denRed = -denRed;
+      }
+
+      const radPart = kRed === 1 ? `\\sqrt{${rem}}` : `${kRed}\\sqrt{${rem}}`;
+      let combinedLatex = '';
+      let r1Latex = '';
+      let r2Latex = '';
+
+      if (denRed === 1) {
+        combinedLatex = `${bRed} \\pm ${radPart}`;
+        r1Latex = `${bRed} + ${radPart}`;
+        r2Latex = `${bRed} - ${radPart}`;
+      } else {
+        combinedLatex = `\\frac{${bRed} \\pm ${radPart}}{${denRed}}`;
+        r1Latex = `\\frac{${bRed} + ${radPart}}{${denRed}}`;
+        r2Latex = `\\frac{${bRed} - ${radPart}}{${denRed}}`;
+      }
+
+      step4 = {
+        step_number: 4,
+        description: 'Therefore,',
+        latex: `${varName} = ${combinedLatex}`,
+        rule: 'Unified Radical Form',
+        is_symbolically_verified: true,
+      };
+      step5 = {
+        step_number: 5,
+        description: 'So the two roots are:',
+        latex: `${varName}_1 = ${r1Latex}, \\quad ${varName}_2 = ${r2Latex}`,
+        rule: 'Final Roots',
+        is_symbolically_verified: true,
+      };
+      solLatex = `${varName}_1 = ${r1Latex}, \\quad ${varName}_2 = ${r2Latex}`;
+    }
+  } else {
+    // Complex roots: D < 0
+    const posD = -D;
+    const { outside: k, inside: rem } = simplifyRadical(posD);
+
+    const g = gcd3(Math.abs(b), k, Math.abs(twoA));
+    let bRed = -b / g;
+    const kRed = k / g;
+    let denRed = twoA / g;
+    if (denRed < 0) {
+      bRed = -bRed;
+      denRed = -denRed;
+    }
+
+    const radPart =
+      rem === 1 && kRed === 1
+        ? 'i'
+        : rem === 1
+        ? `${kRed}i`
+        : kRed === 1
+        ? `\\sqrt{${rem}}i`
+        : `${kRed}\\sqrt{${rem}}i`;
+
+    let combinedLatex = '';
+    let r1Latex = '';
+    let r2Latex = '';
+
+    if (denRed === 1) {
+      combinedLatex = `${bRed} \\pm ${radPart}`;
+      r1Latex = `${bRed} + ${radPart}`;
+      r2Latex = `${bRed} - ${radPart}`;
+    } else {
+      combinedLatex = `\\frac{${bRed} \\pm ${radPart}}{${denRed}}`;
+      r1Latex = `\\frac{${bRed} + ${radPart}}{${denRed}}`;
+      r2Latex = `\\frac{${bRed} - ${radPart}}{${denRed}}`;
+    }
+
+    step4 = {
+      step_number: 4,
+      description: 'Therefore,',
+      latex: `${varName} = ${combinedLatex}`,
+      rule: 'Unified Complex Form',
+      is_symbolically_verified: true,
+    };
+    step5 = {
+      step_number: 5,
+      description: 'So the two roots are:',
+      latex: `${varName}_1 = ${r1Latex}, \\quad ${varName}_2 = ${r2Latex}`,
+      rule: 'Final Roots',
+      is_symbolically_verified: true,
+    };
+    solLatex = `${varName}_1 = ${r1Latex}, \\quad ${varName}_2 = ${r2Latex}`;
+  }
+
+  return {
+    solLatex,
+    steps: [step1, step2, step3, step4, step5],
+  };
 }
 
 /**

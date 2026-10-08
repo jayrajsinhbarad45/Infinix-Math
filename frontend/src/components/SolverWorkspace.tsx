@@ -161,7 +161,7 @@ function cleanStepLatex(raw: string): string {
 
 function cleanStepDescription(raw: string, fallbackNumber: number): string {
   if (!raw) return `Step ${fallbackNumber}`;
-  let s = raw.trim().replace(/:\s*$/, '');
+  let s = raw.trim();
 
   // If already contains inline math $...$, preserve it
   if (s.includes('$')) {

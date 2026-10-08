@@ -6,6 +6,7 @@ differentiation, integration, and symbolic equivalence verification with timeout
 from __future__ import annotations
 
 import logging
+import math
 import random
 import re
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
@@ -221,6 +222,25 @@ class LatexParser:
         return s.strip()
 
 
+def simplify_radical_int(n: int) -> Tuple[int, int]:
+    """Returns (outside, inside) such that sqrt(n) = outside * sqrt(inside)."""
+    if n <= 0:
+        return 0, 0
+    coeff = 1
+    rem = n
+    d = 2
+    while d * d <= rem:
+        while rem % (d * d) == 0:
+            coeff *= d
+            rem //= (d * d)
+        d += 1
+    return coeff, rem
+
+
+def gcd3(x: int, y: int, z: int) -> int:
+    return math.gcd(math.gcd(abs(x), abs(y)), abs(z))
+
+
 def format_quadratic_roots(a: Any, b: Any, c: Any, target_var: Any, disc: Any) -> str:
     """Formats quadratic roots into clean, student-friendly standard fractions."""
     if not (getattr(a, "is_integer", False) and getattr(b, "is_integer", False) and getattr(disc, "is_integer", False)):
@@ -230,36 +250,87 @@ def format_quadratic_roots(a: Any, b: Any, c: Any, target_var: Any, disc: Any) -
     a_val = int(a)
     b_val = int(b)
     disc_val = int(disc)
+    var_str = latex(target_var)
 
     two_a = 2 * a_val
-    if disc_val >= 0:
-        sq = sympy.sqrt(disc_val)
-        r1 = (-b_val + sq) / two_a
-        r2 = (-b_val - sq) / two_a
-        if disc_val == 0:
-            return f"{latex(target_var)} = {latex(r1)}"
-        return f"{latex(target_var)} = {latex(r1)}, \\quad {latex(target_var)} = {latex(r2)}"
-    else:
-        sq = sympy.sqrt(-disc_val)
-        coeff, rad = sq.as_coeff_Mul()
-        g = sympy.gcd(sympy.gcd(abs(b_val), abs(int(coeff))), abs(two_a))
-        g_val = int(g) if g else 1
-        b_red = -b_val // g_val
-        rad_red = sq / g_val
-        den_red = two_a // g_val
-        if den_red < 0:
-            b_red, den_red = -b_red, -den_red
+    if disc_val == 0:
+        g = math.gcd(abs(b_val), abs(two_a))
+        num = -b_val // g
+        den = two_a // g
+        if den < 0:
+            num = -num
+            den = -den
+        res = f"{num}" if den == 1 else f"\\frac{{{num}}}{{{den}}}"
+        return f"{var_str} = {res}"
 
-        rad_str = "i" if rad_red == 1 else f"{latex(rad_red)}i"
+    elif disc_val > 0:
+        k, rem = simplify_radical_int(disc_val)
+        if rem == 1:
+            r1_num = -b_val + k
+            r2_num = -b_val - k
 
-        if b_red == 0 and den_red == 1:
-            return f"{latex(target_var)} = \\pm {rad_str}"
-        elif b_red == 0:
-            return f"{latex(target_var)} = \\pm \\frac{{{rad_str}}}{{{den_red}}}"
-        elif den_red == 1:
-            return f"{latex(target_var)} = {b_red} \\pm {rad_str}"
+            def simplify_frac(n: int, d: int) -> str:
+                if d < 0:
+                    n, d = -n, -d
+                g = math.gcd(abs(n), abs(d))
+                n //= g
+                d //= g
+                return f"{n}" if d == 1 else f"\\frac{{{n}}}{{{d}}}"
+
+            r1_str = simplify_frac(r1_num, two_a)
+            r2_str = simplify_frac(r2_num, two_a)
+            return f"{var_str}_1 = {r1_str}, \\quad {var_str}_2 = {r2_str}"
         else:
-            return f"{latex(target_var)} = \\frac{{{b_red} \\pm {rad_str}}}{{{den_red}}}"
+            g = gcd3(b_val, k, two_a)
+            b_red = -b_val // g
+            k_red = k // g
+            den_red = two_a // g
+            if den_red < 0:
+                b_red = -b_red
+                den_red = -den_red
+
+            rad_part = f"\\sqrt{{{rem}}}" if k_red == 1 else f"{k_red}\\sqrt{{{rem}}}"
+            if den_red == 1:
+                r1_str = f"{b_red} + {rad_part}"
+                r2_str = f"{b_red} - {rad_part}"
+            else:
+                r1_str = f"\\frac{{{b_red} + {rad_part}}}{{{den_red}}}"
+                r2_str = f"\\frac{{{b_red} - {rad_part}}}{{{den_red}}}"
+
+            return f"{var_str}_1 = {r1_str}, \\quad {var_str}_2 = {r2_str}"
+    else:
+        pos_d = -disc_val
+        k, rem = simplify_radical_int(pos_d)
+        g = gcd3(b_val, k, two_a)
+        b_red = -b_val // g
+        k_red = k // g
+        den_red = two_a // g
+        if den_red < 0:
+            b_red = -b_red
+            den_red = -den_red
+
+        rad_part = (
+            "i"
+            if rem == 1 and k_red == 1
+            else (
+                f"{k_red}i"
+                if rem == 1
+                else (
+                    f"\\sqrt{{{rem}}}i"
+                    if k_red == 1
+                    else f"{k_red}\\sqrt{{{rem}}}i"
+                )
+            )
+        )
+
+        if den_red == 1:
+            r1_str = f"{b_red} + {rad_part}"
+            r2_str = f"{b_red} - {rad_part}"
+        else:
+            r1_str = f"\\frac{{{b_red} + {rad_part}}}{{{den_red}}}"
+            r2_str = f"\\frac{{{b_red} - {rad_part}}}{{{den_red}}}"
+
+        return f"{var_str}_1 = {r1_str}, \\quad {var_str}_2 = {r2_str}"
 
 
 class SympyEngine:
@@ -411,71 +482,241 @@ class SympyEngine:
                     disc = b**2 - 4 * a * c
                     two_a = 2 * a
 
+                    if getattr(a, "is_integer", False) and getattr(b, "is_integer", False) and getattr(c, "is_integer", False):
+                        a_val = int(a)
+                        b_val = int(b)
+                        c_val = int(c)
+                        disc_val = int(disc)
+                        var_str = latex(target_var)
+
+                        # Step 1: Using the quadratic formula,
+                        step1 = {
+                            "step_number": 1,
+                            "description": "Using the quadratic formula,",
+                            "latex": f"{var_str} = \\frac{{-b \\pm \\sqrt{{b^2 - 4ac}}}}{{2a}}",
+                            "rule": "Quadratic Formula",
+                            "is_symbolically_verified": True,
+                        }
+
+                        # Step 2: Here,
+                        step2 = {
+                            "step_number": 2,
+                            "description": "Here,",
+                            "latex": f"a = {a_val}, \\quad b = {b_val}, \\quad c = {c_val}",
+                            "rule": "Identification",
+                            "is_symbolically_verified": True,
+                        }
+
+                        # Step 3: Discriminant:
+                        b_term_str = f"({b_val})^2" if b_val < 0 else f"{b_val}^2"
+                        b_sq = b_val**2
+                        four_ac = 4 * a_val * c_val
+                        if four_ac < 0:
+                            disc_calc_str = f"D = {b_term_str} - 4({a_val})({c_val}) = {b_sq} - ({four_ac}) = {b_sq} + {-four_ac} = {disc_val}"
+                        elif four_ac > 0:
+                            disc_calc_str = f"D = {b_term_str} - 4({a_val})({c_val}) = {b_sq} - {four_ac} = {disc_val}"
+                        else:
+                            disc_calc_str = f"D = {b_term_str} - 4({a_val})({c_val}) = {b_sq} - 0 = {disc_val}"
+
+                        step3 = {
+                            "step_number": 3,
+                            "description": "Discriminant:",
+                            "latex": disc_calc_str,
+                            "rule": "Discriminant",
+                            "is_symbolically_verified": True,
+                        }
+
+                        # Step 4 (Therefore,) & Step 5 (So the two roots are:)
+                        if disc_val == 0:
+                            g = math.gcd(abs(b_val), abs(2 * a_val))
+                            num = -b_val // g
+                            den = (2 * a_val) // g
+                            if den < 0:
+                                num = -num
+                                den = -den
+                            res = f"{num}" if den == 1 else f"\\frac{{{num}}}{{{den}}}"
+                            b_disp = f"-({b_val})" if b_val < 0 else f"-{b_val}"
+                            step4 = {
+                                "step_number": 4,
+                                "description": "Therefore,",
+                                "latex": f"{var_str} = \\frac{{{b_disp}}}{{2({a_val})}} = {res}",
+                                "rule": "Single Root",
+                                "is_symbolically_verified": True,
+                            }
+                            step5 = {
+                                "step_number": 5,
+                                "description": "So the root is:",
+                                "latex": f"{var_str} = {res}",
+                                "rule": "Final Root",
+                                "is_symbolically_verified": True,
+                            }
+                            sol_latex = f"{var_str} = {res}"
+                        elif disc_val > 0:
+                            k, rem = simplify_radical_int(disc_val)
+                            two_a_val = 2 * a_val
+                            b_disp = f"-({b_val})" if b_val < 0 else f"-{b_val}"
+
+                            if rem == 1:
+                                r1_num = -b_val + k
+                                r2_num = -b_val - k
+
+                                def simplify_frac(n: int, d: int) -> str:
+                                    if d < 0:
+                                        n, d = -n, -d
+                                    g = math.gcd(abs(n), abs(d))
+                                    n //= g
+                                    d //= g
+                                    return f"{n}" if d == 1 else f"\\frac{{{n}}}{{{d}}}"
+
+                                r1_str = simplify_frac(r1_num, two_a_val)
+                                r2_str = simplify_frac(r2_num, two_a_val)
+                                step4 = {
+                                    "step_number": 4,
+                                    "description": "Therefore,",
+                                    "latex": f"{var_str} = \\frac{{{b_disp} \\pm {k}}}{{{two_a_val}}}",
+                                    "rule": "Evaluate Roots",
+                                    "is_symbolically_verified": True,
+                                }
+                                step5 = {
+                                    "step_number": 5,
+                                    "description": "So the two roots are:",
+                                    "latex": f"{var_str}_1 = {r1_str}, \\quad {var_str}_2 = {r2_str}",
+                                    "rule": "Final Roots",
+                                    "is_symbolically_verified": True,
+                                }
+                                sol_latex = f"{var_str}_1 = {r1_str}, \\quad {var_str}_2 = {r2_str}"
+                            else:
+                                g = gcd3(b_val, k, two_a_val)
+                                b_red = -b_val // g
+                                k_red = k // g
+                                den_red = two_a_val // g
+                                if den_red < 0:
+                                    b_red = -b_red
+                                    den_red = -den_red
+
+                                rad_part = f"\\sqrt{{{rem}}}" if k_red == 1 else f"{k_red}\\sqrt{{{rem}}}"
+                                if den_red == 1:
+                                    combined = f"{b_red} \\pm {rad_part}"
+                                    r1_str = f"{b_red} + {rad_part}"
+                                    r2_str = f"{b_red} - {rad_part}"
+                                else:
+                                    combined = f"\\frac{{{b_red} \\pm {rad_part}}}{{{den_red}}}"
+                                    r1_str = f"\\frac{{{b_red} + {rad_part}}}{{{den_red}}}"
+                                    r2_str = f"\\frac{{{b_red} - {rad_part}}}{{{den_red}}}"
+
+                                step4 = {
+                                    "step_number": 4,
+                                    "description": "Therefore,",
+                                    "latex": f"{var_str} = {combined}",
+                                    "rule": "Unified Radical Form",
+                                    "is_symbolically_verified": True,
+                                }
+                                step5 = {
+                                    "step_number": 5,
+                                    "description": "So the two roots are:",
+                                    "latex": f"{var_str}_1 = {r1_str}, \\quad {var_str}_2 = {r2_str}",
+                                    "rule": "Final Roots",
+                                    "is_symbolically_verified": True,
+                                }
+                                sol_latex = f"{var_str}_1 = {r1_str}, \\quad {var_str}_2 = {r2_str}"
+                        else:
+                            # disc_val < 0
+                            pos_d = -disc_val
+                            k, rem = simplify_radical_int(pos_d)
+                            two_a_val = 2 * a_val
+                            g = gcd3(b_val, k, two_a_val)
+                            b_red = -b_val // g
+                            k_red = k // g
+                            den_red = two_a_val // g
+                            if den_red < 0:
+                                b_red = -b_red
+                                den_red = -den_red
+
+                            rad_part = (
+                                "i"
+                                if rem == 1 and k_red == 1
+                                else (
+                                    f"{k_red}i"
+                                    if rem == 1
+                                    else (
+                                        f"\\sqrt{{{rem}}}i"
+                                        if k_red == 1
+                                        else f"{k_red}\\sqrt{{{rem}}}i"
+                                    )
+                                )
+                            )
+
+                            if den_red == 1:
+                                combined = f"{b_red} \\pm {rad_part}"
+                                r1_str = f"{b_red} + {rad_part}"
+                                r2_str = f"{b_red} - {rad_part}"
+                            else:
+                                combined = f"\\frac{{{b_red} \\pm {rad_part}}}{{{den_red}}}"
+                                r1_str = f"\\frac{{{b_red} + {rad_part}}}{{{den_red}}}"
+                                r2_str = f"\\frac{{{b_red} - {rad_part}}}{{{den_red}}}"
+
+                            step4 = {
+                                "step_number": 4,
+                                "description": "Therefore,",
+                                "latex": f"{var_str} = {combined}",
+                                "rule": "Unified Complex Form",
+                                "is_symbolically_verified": True,
+                            }
+                            step5 = {
+                                "step_number": 5,
+                                "description": "So the two roots are:",
+                                "latex": f"{var_str}_1 = {r1_str}, \\quad {var_str}_2 = {r2_str}",
+                                "rule": "Final Roots",
+                                "is_symbolically_verified": True,
+                            }
+                            sol_latex = f"{var_str}_1 = {r1_str}, \\quad {var_str}_2 = {r2_str}"
+
+                        structured_steps = [step1, step2, step3, step4, step5]
+
+                        return {
+                            "success": True,
+                            "latex_solution": sol_latex,
+                            "steps": [s["description"] for s in structured_steps],
+                            "structured_steps": structured_steps,
+                            "is_symbolically_verified": True,
+                            "domain": "equations",
+                        }
+
                     structured_steps = [
                         {
                             "step_number": 1,
-                            "description": f"Identify coefficients from standard form $a{latex(target_var)}^2 + b{latex(target_var)} + c = 0$",
+                            "description": "Using the quadratic formula,",
+                            "latex": f"{latex(target_var)} = \\frac{{-b \\pm \\sqrt{{b^2 - 4ac}}}}{{2a}}",
+                            "rule": "Quadratic Formula",
+                            "is_symbolically_verified": True,
+                        },
+                        {
+                            "step_number": 2,
+                            "description": "Here,",
                             "latex": f"a = {latex(a)}, \\quad b = {latex(b)}, \\quad c = {latex(c)}",
                             "rule": "Identification",
                             "is_symbolically_verified": True,
                         },
                         {
-                            "step_number": 2,
-                            "description": "Calculate the discriminant ($b^2 - 4ac$)",
-                            "latex": f"\\Delta = ({latex(b)})^2 - 4({latex(a)})({latex(c)}) = {latex(disc)}",
+                            "step_number": 3,
+                            "description": "Discriminant:",
+                            "latex": f"D = ({latex(b)})^2 - 4({latex(a)})({latex(c)}) = {latex(disc)}",
                             "rule": "Discriminant",
                             "is_symbolically_verified": True,
                         },
                     ]
 
-                    if disc > 0:
-                        structured_steps.append({
-                            "step_number": 3,
-                            "description": "Since the discriminant is positive, the equation yields two distinct real solutions",
-                            "latex": f"\\Delta = {latex(disc)} > 0",
-                            "rule": "Nature of Roots",
-                            "is_symbolically_verified": True,
-                        })
-                    elif disc == 0:
-                        structured_steps.append({
-                            "step_number": 3,
-                            "description": "Since the discriminant is zero, the equation yields a single repeated real solution",
-                            "latex": "\\Delta = 0",
-                            "rule": "Nature of Roots",
-                            "is_symbolically_verified": True,
-                        })
-                    else:
-                        structured_steps.append({
-                            "step_number": 3,
-                            "description": "Since the discriminant is negative, the equation yields two complex conjugate solutions",
-                            "latex": f"\\Delta = {latex(disc)} < 0 \\implies \\text{{Roots involve imaginary unit }} i = \\sqrt{{-1}}",
-                            "rule": "Nature of Roots",
-                            "is_symbolically_verified": True,
-                        })
-
+                    sol_latex = format_quadratic_roots(a, b, c, target_var, disc)
                     structured_steps.append({
                         "step_number": 4,
-                        "description": "Apply the quadratic formula",
-                        "latex": f"{latex(target_var)} = \\frac{{-b \\pm \\sqrt{{\\Delta}}}}{{2a}} = \\frac{{-({latex(b)}) \\pm \\sqrt{{{latex(disc)}}}}}{{2({latex(a)})}}",
+                        "description": "Therefore,",
+                        "latex": f"{latex(target_var)} = \\frac{{-({latex(b)}) \\pm \\sqrt{{{latex(disc)}}}}}{{2({latex(a)})}}",
                         "rule": "Quadratic Formula",
                         "is_symbolically_verified": True,
                     })
-
-                    if disc < 0:
-                        pos_d = -disc
-                        sq = sympy.sqrt(pos_d)
-                        structured_steps.append({
-                            "step_number": 5,
-                            "description": "Simplify the square root of the negative discriminant",
-                            "latex": f"\\sqrt{{{latex(disc)}}} = \\sqrt{{{latex(pos_d)}}} \\cdot i = {latex(sq)}i",
-                            "rule": "Radical Simplification",
-                            "is_symbolically_verified": True,
-                        })
-
-                    sol_latex = format_quadratic_roots(a, b, c, target_var, disc)
                     structured_steps.append({
-                        "step_number": len(structured_steps) + 1,
-                        "description": "Final simplified solutions",
+                        "step_number": 5,
+                        "description": "So the roots are:",
                         "latex": sol_latex,
                         "rule": "Final Answer",
                         "is_symbolically_verified": True,
