@@ -28,6 +28,9 @@ export const MathRenderer: React.FC<MathRendererProps> = ({
     const hasMathDelimiters = cleaned.includes('$$') || cleaned.includes('$');
 
     if (!hasMathDelimiters) {
+      if (isPureProse(cleaned)) {
+        return `<span class="text-slate-200">${escapeHtml(cleaned)}</span>`;
+      }
       // Direct render of the math expression
       try {
         return katex.renderToString(cleaned, {
@@ -83,6 +86,21 @@ export const MathRenderer: React.FC<MathRendererProps> = ({
     />
   );
 };
+
+function isPureProse(text: string): boolean {
+  const t = text.trim();
+  // If it contains backslash commands or math delimiters, it's not pure prose
+  if (/\\\w+|\$\$|\$/.test(t)) return false;
+  // If it's a single English word or multiple English words with spaces/punctuation
+  // e.g. 'Using the quadratic formula,', 'Discriminant:', 'Here,', 'So the two roots are:'
+  if (/^[a-zA-Z\s,.:;!?'\(\)\-]+$/.test(t)) {
+    const words = t.split(/\s+/);
+    if (words.length >= 2 || (words.length === 1 && words[0].replace(/[^a-zA-Z]/g, '').length >= 3)) {
+      return true;
+    }
+  }
+  return false;
+}
 
 function escapeHtml(text: string): string {
   return text
