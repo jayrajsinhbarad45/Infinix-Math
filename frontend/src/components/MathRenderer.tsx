@@ -17,30 +17,36 @@ export const MathRenderer: React.FC<MathRendererProps> = ({
   const renderedHtml = useMemo(() => {
     if (!content) return '';
 
-    // If whole content is wrapped in $$ or represents pure LaTeX formula without words
-    const trimmed = content.trim();
-    const hasMathDelimiters = trimmed.includes('$$') || trimmed.includes('$');
+    let cleaned = content.trim();
+    // If the entire string is wrapped in matching $$...$$ with no other $$, unwrap for direct displayMode rendering
+    if (cleaned.startsWith('$$') && cleaned.endsWith('$$') && (cleaned.match(/\$\$/g) || []).length === 2) {
+      cleaned = cleaned.slice(2, -2).trim();
+    } else if (cleaned.startsWith('$') && cleaned.endsWith('$') && (cleaned.match(/\$/g) || []).length === 2) {
+      cleaned = cleaned.slice(1, -1).trim();
+    }
+
+    const hasMathDelimiters = cleaned.includes('$$') || cleaned.includes('$');
 
     if (!hasMathDelimiters) {
       // Direct render of the math expression
       try {
-        return katex.renderToString(trimmed, {
+        return katex.renderToString(cleaned, {
           displayMode: displayMode,
           throwOnError: false,
           output: 'htmlAndMathml',
         });
       } catch (err) {
         console.warn('KaTeX direct render error:', err);
-        return `<span class="text-rose-400 font-mono text-sm">${escapeHtml(trimmed)}</span>`;
+        return `<span class="text-rose-400 font-mono text-sm">${escapeHtml(cleaned)}</span>`;
       }
     }
 
-    // Handle mixed prose + math: e.g. "Initial Expression: $$x^2 - 4$$"
-    // Regex splits by $$...$$ or $...$
-    const parts = trimmed.split(/(\$\$[\s\S]*?\$\$|\$[^\$]*?\$)/g);
+    // Handle mixed prose + math: e.g. "Step 1: Compare with $ax^2 + bx + c = 0$"
+    const parts = cleaned.split(/(\$\$[\s\S]*?\$\$|\$[^\$]*?\$)/g);
 
     return parts
       .map((part) => {
+        if (!part) return '';
         if (part.startsWith('$$') && part.endsWith('$$')) {
           const math = part.slice(2, -2).trim();
           try {

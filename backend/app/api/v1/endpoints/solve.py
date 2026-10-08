@@ -61,17 +61,43 @@ async def solve_math_problem(request: SolveRequest) -> SolveResponse:
         elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
 
         # Convert steps into structured step models
-        raw_steps: List[str] = engine_result.get("steps", [])
-        structured_steps = [
-            MathStep(
-                step_number=idx,
-                description=step.split(":")[0] if ":" in step else f"Step {idx}",
-                latex=step,
-                rule="Symbolic Derivation",
-                is_symbolically_verified=True,
-            )
-            for idx, step in enumerate(raw_steps, 1)
-        ]
+        engine_structured = engine_result.get("structured_steps")
+        if engine_structured and isinstance(engine_structured, list):
+            structured_steps = [
+                MathStep(**s) if isinstance(s, dict) else s
+                for s in engine_structured
+            ]
+            raw_steps = [s.description for s in structured_steps]
+        else:
+            raw_steps = engine_result.get("steps", [])
+            structured_steps = []
+            for idx, step in enumerate(raw_steps, 1):
+                desc = f"Step {idx}"
+                math_val = step
+                if ": $$" in step:
+                    parts = step.split(": $$", 1)
+                    desc = parts[0].strip()
+                    math_val = parts[1].replace("$$", "").strip()
+                elif "::" in step:
+                    parts = step.split("::", 1)
+                    desc = parts[0].strip()
+                    math_val = parts[1].replace("$$", "").strip()
+                elif ":" in step:
+                    parts = step.split(":", 1)
+                    desc = parts[0].strip()
+                    math_val = parts[1].replace("$$", "").strip()
+                else:
+                    math_val = math_val.replace("$$", "").strip()
+
+                structured_steps.append(
+                    MathStep(
+                        step_number=idx,
+                        description=desc,
+                        latex=math_val,
+                        rule=None,
+                        is_symbolically_verified=True,
+                    )
+                )
 
         return SolveResponse(
             success=True,

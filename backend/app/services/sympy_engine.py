@@ -221,6 +221,47 @@ class LatexParser:
         return s.strip()
 
 
+def format_quadratic_roots(a: Any, b: Any, c: Any, target_var: Any, disc: Any) -> str:
+    """Formats quadratic roots into clean, student-friendly standard fractions."""
+    if not (getattr(a, "is_integer", False) and getattr(b, "is_integer", False) and getattr(disc, "is_integer", False)):
+        sol = solve(a * target_var**2 + b * target_var + c, target_var)
+        return ", ".join([f"{latex(target_var)} = {latex(s)}" for s in sol])
+
+    a_val = int(a)
+    b_val = int(b)
+    disc_val = int(disc)
+
+    two_a = 2 * a_val
+    if disc_val >= 0:
+        sq = sympy.sqrt(disc_val)
+        r1 = (-b_val + sq) / two_a
+        r2 = (-b_val - sq) / two_a
+        if disc_val == 0:
+            return f"{latex(target_var)} = {latex(r1)}"
+        return f"{latex(target_var)} = {latex(r1)}, \\quad {latex(target_var)} = {latex(r2)}"
+    else:
+        sq = sympy.sqrt(-disc_val)
+        coeff, rad = sq.as_coeff_Mul()
+        g = sympy.gcd(sympy.gcd(abs(b_val), abs(int(coeff))), abs(two_a))
+        g_val = int(g) if g else 1
+        b_red = -b_val // g_val
+        rad_red = sq / g_val
+        den_red = two_a // g_val
+        if den_red < 0:
+            b_red, den_red = -b_red, -den_red
+
+        rad_str = "i" if rad_red == 1 else f"{latex(rad_red)}i"
+
+        if b_red == 0 and den_red == 1:
+            return f"{latex(target_var)} = \\pm {rad_str}"
+        elif b_red == 0:
+            return f"{latex(target_var)} = \\pm \\frac{{{rad_str}}}{{{den_red}}}"
+        elif den_red == 1:
+            return f"{latex(target_var)} = {b_red} \\pm {rad_str}"
+        else:
+            return f"{latex(target_var)} = \\frac{{{b_red} \\pm {rad_str}}}{{{den_red}}}"
+
+
 class SympyEngine:
     """Core deterministic symbolic solver & verifier for Infinix Math."""
 
@@ -359,7 +400,7 @@ class SympyEngine:
 
             steps.append(f"Solving with respect to variable $${latex(target_var)}$$")
 
-            # Check for polynomial structure (linear, quadratic, factorable) to provide detailed steps
+            # Check for polynomial structure (linear, quadratic, factorable) to provide detailed student steps
             try:
                 poly = sympy.Poly(norm_expr, target_var)
                 deg = poly.degree()
@@ -368,22 +409,127 @@ class SympyEngine:
                     b = poly.coeff_monomial(target_var)
                     c = poly.coeff_monomial(1)
                     disc = b**2 - 4 * a * c
-                    steps.append(f"Standard Quadratic Form: $$a{latex(target_var)}^2 + b{latex(target_var)} + c = 0$$ with $$a = {latex(a)},\\ b = {latex(b)},\\ c = {latex(c)}$$")
-                    steps.append(f"Compute Discriminant: $$\\Delta = b^2 - 4ac = ({latex(b)})^2 - 4({latex(a)})({latex(c)}) = {latex(disc)}$$")
+                    two_a = 2 * a
+
+                    structured_steps = [
+                        {
+                            "step_number": 1,
+                            "description": f"Identify coefficients from standard form a{latex(target_var)}^2 + b{latex(target_var)} + c = 0",
+                            "latex": f"a = {latex(a)}, \\quad b = {latex(b)}, \\quad c = {latex(c)}",
+                            "rule": "Identification",
+                            "is_symbolically_verified": True,
+                        },
+                        {
+                            "step_number": 2,
+                            "description": "Calculate the discriminant (b^2 - 4ac)",
+                            "latex": f"\\Delta = ({latex(b)})^2 - 4({latex(a)})({latex(c)}) = {latex(disc)}",
+                            "rule": "Discriminant",
+                            "is_symbolically_verified": True,
+                        },
+                    ]
+
                     if disc > 0:
-                        steps.append("Nature of Roots: $$\\Delta > 0$$, which yields two distinct real solutions.")
+                        structured_steps.append({
+                            "step_number": 3,
+                            "description": "Since the discriminant is positive, the equation yields two distinct real solutions",
+                            "latex": f"\\Delta = {latex(disc)} > 0",
+                            "rule": "Nature of Roots",
+                            "is_symbolically_verified": True,
+                        })
                     elif disc == 0:
-                        steps.append("Nature of Roots: $$\\Delta = 0$$, which yields a single repeated real solution.")
+                        structured_steps.append({
+                            "step_number": 3,
+                            "description": "Since the discriminant is zero, the equation yields a single repeated real solution",
+                            "latex": "\\Delta = 0",
+                            "rule": "Nature of Roots",
+                            "is_symbolically_verified": True,
+                        })
                     else:
-                        steps.append("Nature of Roots: $$\\Delta < 0$$, which yields two complex conjugate solutions.")
-                    steps.append(f"Quadratic Formula: $${latex(target_var)} = \\frac{{-b \\pm \\sqrt{{\\Delta}}}}{{2a}} = \\frac{{-({latex(b)}) \\pm \\sqrt{{{latex(disc)}}}}}{{2({latex(a)})}}$$")
+                        structured_steps.append({
+                            "step_number": 3,
+                            "description": "Since the discriminant is negative, the equation yields two complex conjugate solutions",
+                            "latex": f"\\Delta = {latex(disc)} < 0 \\implies \\text{{Roots involve imaginary unit }} i = \\sqrt{{-1}}",
+                            "rule": "Nature of Roots",
+                            "is_symbolically_verified": True,
+                        })
+
+                    structured_steps.append({
+                        "step_number": 4,
+                        "description": "Apply the quadratic formula",
+                        "latex": f"{latex(target_var)} = \\frac{{-b \\pm \\sqrt{{\\Delta}}}}{{2a}} = \\frac{{-({latex(b)}) \\pm \\sqrt{{{latex(disc)}}}}}{{2({latex(a)})}}",
+                        "rule": "Quadratic Formula",
+                        "is_symbolically_verified": True,
+                    })
+
+                    if disc < 0:
+                        pos_d = -disc
+                        sq = sympy.sqrt(pos_d)
+                        structured_steps.append({
+                            "step_number": 5,
+                            "description": "Simplify the square root of the negative discriminant",
+                            "latex": f"\\sqrt{{{latex(disc)}}} = \\sqrt{{{latex(pos_d)}}} \\cdot i = {latex(sq)}i",
+                            "rule": "Radical Simplification",
+                            "is_symbolically_verified": True,
+                        })
+
+                    sol_latex = format_quadratic_roots(a, b, c, target_var, disc)
+                    structured_steps.append({
+                        "step_number": len(structured_steps) + 1,
+                        "description": "Final simplified solutions",
+                        "latex": sol_latex,
+                        "rule": "Final Answer",
+                        "is_symbolically_verified": True,
+                    })
+
+                    return {
+                        "success": True,
+                        "latex_solution": sol_latex,
+                        "steps": [s["description"] for s in structured_steps],
+                        "structured_steps": structured_steps,
+                        "is_symbolically_verified": True,
+                        "domain": "equations",
+                    }
+
                 elif deg == 1:
                     a = poly.coeff_monomial(target_var)
                     b = poly.coeff_monomial(1)
-                    steps.append(f"Linear Form: $${latex(a)}{latex(target_var)} + ({latex(b)}) = 0$$")
-                    steps.append(f"Isolate Variable: $${latex(a)}{latex(target_var)} = {latex(-b)}$$")
+                    root_val = sympy.Rational(-b, a)
+                    sol_latex = f"{latex(target_var)} = {latex(root_val)}"
+
+                    structured_steps = [
+                        {
+                            "step_number": 1,
+                            "description": f"Standard linear equation form",
+                            "latex": f"{latex(a)}{latex(target_var)} + ({latex(b)}) = 0",
+                            "rule": "Linear Form",
+                            "is_symbolically_verified": True,
+                        },
+                        {
+                            "step_number": 2,
+                            "description": f"Subtract {latex(b)} from both sides to isolate the variable term",
+                            "latex": f"{latex(a)}{latex(target_var)} = {latex(-b)}",
+                            "rule": "Isolate Variable",
+                            "is_symbolically_verified": True,
+                        },
+                    ]
                     if a != 1:
-                        steps.append(f"Divide by Coefficient: $${latex(target_var)} = \\frac{{{latex(-b)}}}{{{latex(a)}}}$$")
+                        structured_steps.append({
+                            "step_number": 3,
+                            "description": f"Divide both sides by the coefficient {latex(a)}",
+                            "latex": f"{latex(target_var)} = \\frac{{{latex(-b)}}}{{{latex(a)}}} = {latex(root_val)}",
+                            "rule": "Division Property",
+                            "is_symbolically_verified": True,
+                        })
+
+                    return {
+                        "success": True,
+                        "latex_solution": sol_latex,
+                        "steps": [s["description"] for s in structured_steps],
+                        "structured_steps": structured_steps,
+                        "is_symbolically_verified": True,
+                        "domain": "equations",
+                    }
+
                 elif deg > 2:
                     factored = factor(norm_expr)
                     if factored != norm_expr:

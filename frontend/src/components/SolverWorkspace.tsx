@@ -132,9 +132,44 @@ function spokenMathToLatex(text: string): string {
   return t;
 }
 
+function getGraphFormulaLabel(input: string): string {
+  const trimmed = input.trim();
+  if (trimmed.includes('=')) {
+    const sides = trimmed.split('=');
+    const lhs = sides[0].trim();
+    const rhs = sides[1]?.trim();
+    if (!rhs || rhs === '0') {
+      return `f(x) = ${lhs}`;
+    }
+    return `f(x) = ${lhs} - (${rhs})`;
+  }
+  return `f(x) = ${trimmed}`;
+}
+
+function cleanStepLatex(raw: string): string {
+  if (!raw) return '';
+  let s = raw.trim();
+  const match = s.match(/^(?:[^:]+:\s*)?\$\$([\s\S]+?)\$\$$/);
+  if (match) {
+    return match[1].trim();
+  }
+  if (s.startsWith('$$') && s.endsWith('$$')) {
+    return s.slice(2, -2).trim();
+  }
+  return s;
+}
+
+function cleanStepDescription(raw: string, fallbackNumber: number): string {
+  if (!raw) return `Step ${fallbackNumber}`;
+  const textOnly = raw.replace(/\$\$[\s\S]*?\$\$/g, '').replace(/\$[^\$]*?\$/g, '').trim();
+  if (textOnly) {
+    return textOnly.replace(/:\s*$/, '').trim();
+  }
+  return `Step ${fallbackNumber}`;
+}
+
 export const SolverWorkspace: React.FC = () => {
   const [problemInput, setProblemInput] = useState('\\int \\frac{3x^2 + 5x}{x^2 + 1} dx');
-  const [activeMethodTab, setActiveMethodTab] = useState<'step' | 'alt1' | 'alt2'>('step');
   const [isSolving, setIsSolving] = useState(false);
   const [modalMode, setModalMode] = useState<'none' | 'ocr' | 'draw'>('none');
   const [showKeyboard, setShowKeyboard] = useState(false);
@@ -313,11 +348,9 @@ export const SolverWorkspace: React.FC = () => {
   }, []);
 
   // -----------------------------------------------------------------------
-  // Derive formula label for graph from solution or input
+  // Derive formula label for graph from input
   // -----------------------------------------------------------------------
-  const graphFormulaLabel = solutionData?.latex_solution
-    ? `f(x) = ${solutionData.latex_solution}`
-    : `f(x) = ${problemInput}`;
+  const graphFormulaLabel = getGraphFormulaLabel(problemInput);
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-4 animate-in fade-in duration-300">
@@ -526,30 +559,16 @@ export const SolverWorkspace: React.FC = () => {
         {/* Left: Step-by-Step Solution Card */}
         <div className="lg:col-span-7 bg-[#0d1424]/90 border border-slate-800/90 rounded-2xl p-6 shadow-xl space-y-5">
 
-          {/* Method Tabs */}
-          <div className="flex items-center gap-6 border-b border-slate-800 pb-3 text-xs sm:text-sm font-semibold">
-            {(['step', 'alt1', 'alt2'] as const).map((tab, i) => (
-              <button
-                key={tab}
-                type="button"
-                id={`solution-tab-${tab}`}
-                onClick={() => setActiveMethodTab(tab)}
-                className={`pb-1 transition-all ${
-                  activeMethodTab === tab
-                    ? 'text-indigo-400 border-b-2 border-indigo-400'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                {i === 0 ? 'Step-by-Step' : `Alternative Method ${i}`}
-              </button>
-            ))}
-          </div>
-
           {/* Solution Header */}
-          <div className="flex items-center justify-between">
-            <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
-              {isSolving ? 'Solving...' : solutionData ? 'Detailed Solution' : 'Step-by-Step Solution'}
-            </h2>
+          <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
+            <div>
+              <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                {isSolving ? 'Solving Problem...' : solutionData ? 'Step-by-Step Solution' : 'Solution Workspace'}
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Clear mathematical derivation and simplified proof
+              </p>
+            </div>
             {solutionData?.is_symbolically_verified && !isSolving && (
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/40 border border-emerald-800/50 text-emerald-300 text-xs font-semibold">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
@@ -562,78 +581,85 @@ export const SolverWorkspace: React.FC = () => {
           {isSolving && (
             <div className="flex flex-col items-center justify-center py-12 gap-3">
               <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
-              <p className="text-sm text-slate-400">Running SymPy CAS engine...</p>
+              <p className="text-sm text-slate-400">Computing step-by-step mathematical derivation...</p>
             </div>
           )}
 
-          {/* Step-by-Step Tab */}
-          {!isSolving && activeMethodTab === 'step' && (
+          {/* Step-by-Step Content */}
+          {!isSolving && (
             <div className="space-y-4 pt-1">
               {solutionData && solutionData.structured_steps.length > 0 ? (
                 <>
                   {/* Final Answer Banner */}
-                  <div className="p-3 rounded-xl bg-indigo-950/30 border border-indigo-700/40 space-y-1">
-                    <div className="text-[10px] font-semibold uppercase tracking-wider text-indigo-400">Final Answer</div>
-                    <div className="overflow-x-auto">
-                      <MathRenderer content={`$$${solutionData.latex_solution}$$`} displayMode={true} />
+                  <div className="p-4 rounded-xl bg-gradient-to-r from-indigo-950/50 via-purple-950/30 to-slate-900 border border-indigo-700/50 space-y-2 shadow-inner">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-300">
+                        Final Answer
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        {solutionData.execution_time_ms}ms · {solutionData.domain}
+                      </span>
                     </div>
-                    <div className="text-[10px] text-slate-500 font-mono">
-                      Computed in {solutionData.execution_time_ms}ms · Domain: {solutionData.domain}
+                    <div className="overflow-x-auto py-1 text-center sm:text-left">
+                      <MathRenderer content={cleanStepLatex(solutionData.latex_solution)} displayMode={true} />
                     </div>
                   </div>
 
-                  {/* Steps */}
-                  {solutionData.structured_steps.map((st) => (
-                    <div key={st.step_number} className="flex items-start gap-3">
-                      <div className="w-6 h-6 rounded-full bg-indigo-900/60 border border-indigo-600/40 text-indigo-300 text-xs font-bold flex items-center justify-center shrink-0 mt-1">
-                        {st.step_number}
-                      </div>
-                      <div className="space-y-1 text-xs sm:text-sm text-slate-200 flex-1 min-w-0">
-                        <div className="font-semibold text-slate-300">{st.description}</div>
-                        {st.rule && (
-                          <div className="text-[10px] text-violet-400 font-medium">Rule: {st.rule}</div>
-                        )}
-                        <div className="overflow-x-auto text-indigo-200 py-1 font-mono">
-                          <MathRenderer content={`$$${st.latex}$$`} displayMode={false} />
+                  {/* Steps List */}
+                  <div className="space-y-4 divide-y divide-slate-800/40 pt-2">
+                    {solutionData.structured_steps.map((st) => {
+                      const stepMath = cleanStepLatex(st.latex);
+                      const stepTitle = cleanStepDescription(st.description, st.step_number);
+
+                      return (
+                        <div key={st.step_number} className="pt-4 first:pt-0 flex items-start gap-3.5">
+                          <div className="w-7 h-7 rounded-full bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+                            {st.step_number}
+                          </div>
+                          <div className="space-y-2 text-xs sm:text-sm text-slate-200 flex-1 min-w-0">
+                            <div className="font-semibold text-slate-200 text-sm">
+                              {stepTitle}
+                            </div>
+                            {stepMath && (
+                              <div className="overflow-x-auto p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 text-indigo-200 shadow-inner">
+                                <MathRenderer content={stepMath} displayMode={true} />
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  ))}
+                      );
+                    })}
+                  </div>
                 </>
               ) : !solutionData ? (
-                // Default placeholder before solving
+                // Default pedagogical placeholder before solving
                 <div className="space-y-4">
                   {[
                     {
                       n: 1,
-                      desc: 'Step 1: Divide the integrand:',
+                      desc: 'Identify the integrand components',
                       math: '\\frac{3x^2 + 5x}{x^2 + 1} = 3 + \\frac{5x - 3}{x^2 + 1}',
                     },
                     {
                       n: 2,
-                      desc: 'Step 2: Separate integrals:',
+                      desc: 'Separate into fundamental integrals',
                       math: '\\int 3 dx + \\int \\frac{5x}{x^2 + 1} dx - \\int \\frac{3}{x^2 + 1} dx',
                     },
                     {
                       n: 3,
-                      desc: 'Step 3: u-substitution: let u = x² + 1, du = 2x dx',
-                      math: '',
-                    },
-                    {
-                      n: 4,
-                      desc: 'Step 4: Final Result:',
+                      desc: 'Evaluate each term using logarithmic and inverse trigonometric rules',
                       math: '3x + \\frac{5}{2}\\ln(x^2 + 1) - 3\\arctan(x) + C',
                     },
                   ].map((s) => (
-                    <div key={s.n} className="flex items-start gap-3">
-                      <div className="w-6 h-6 rounded-full bg-indigo-900/60 border border-indigo-600/40 text-indigo-300 text-xs font-bold flex items-center justify-center shrink-0 mt-1">
+                    <div key={s.n} className="flex items-start gap-3.5 pt-2">
+                      <div className="w-7 h-7 rounded-full bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
                         {s.n}
                       </div>
-                      <div className="space-y-1 text-xs sm:text-sm text-slate-200">
+                      <div className="space-y-2 text-xs sm:text-sm text-slate-200 flex-1 min-w-0">
                         <div className="font-semibold text-slate-300">{s.desc}</div>
                         {s.math && (
-                          <div className="overflow-x-auto text-indigo-200 py-0.5">
-                            <MathRenderer content={`$${s.math}$`} displayMode={false} />
+                          <div className="overflow-x-auto p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 text-indigo-200">
+                            <MathRenderer content={s.math} displayMode={true} />
                           </div>
                         )}
                       </div>
@@ -656,58 +682,6 @@ export const SolverWorkspace: React.FC = () => {
               ) : (
                 <div className="py-8 text-center text-sm text-slate-500">
                   Backend returned no steps. Try a different expression.
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Alternative Method 1 */}
-          {!isSolving && activeMethodTab === 'alt1' && (
-            <div className="p-4 rounded-xl bg-slate-950/60 text-xs text-slate-300 space-y-2">
-              <span className="font-bold text-indigo-300">
-                {problemInput.includes('=') || solutionData?.domain === 'equations'
-                  ? 'Alternative Method: Direct Radical Isolation / Completing the Square'
-                  : problemInput.includes('\\int') || solutionData?.domain === 'calculus'
-                  ? 'Alternative Method: Algebraic / Trigonometric Substitution'
-                  : 'Alternative Method: Direct Canonical Expansion'}
-              </span>
-              <p className="text-slate-400 leading-relaxed">
-                {problemInput.includes('=') || solutionData?.domain === 'equations'
-                  ? 'Rearrange the equation to isolate the primary variable or powers of x. By taking roots of both sides or completing the square, you directly evaluate the principal and conjugate roots without expanding full polynomials.'
-                  : problemInput.includes('\\int') || solutionData?.domain === 'calculus'
-                  ? 'Substitute x = tan(θ) or u = g(x), where dx = g\'(x) du, reducing the integrand via fundamental trigonometric or algebraic identities.'
-                  : 'Expand all polynomial factors systematically into standard form and group like terms by degree.'}
-              </p>
-              {solutionData && solutionData.success && (
-                <div className="mt-3 p-3 bg-indigo-950/30 border border-indigo-800/40 rounded-xl">
-                  <div className="text-[10px] text-indigo-400 font-semibold mb-1">Result:</div>
-                  <MathRenderer content={`$$${solutionData.latex_solution}$$`} displayMode={false} />
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Alternative Method 2 */}
-          {!isSolving && activeMethodTab === 'alt2' && (
-            <div className="p-4 rounded-xl bg-slate-950/60 text-xs text-slate-300 space-y-2">
-              <span className="font-bold text-indigo-300">
-                {problemInput.includes('=') || solutionData?.domain === 'equations'
-                  ? 'Alternative Method: Factoring Over the Complex Field ℂ'
-                  : problemInput.includes('\\int') || solutionData?.domain === 'calculus'
-                  ? 'Alternative Method: Partial Fraction Decomposition'
-                  : 'Alternative Method: Horner\'s Rule / Synthetic Evaluation'}
-              </span>
-              <p className="text-slate-400 leading-relaxed">
-                {problemInput.includes('=') || solutionData?.domain === 'equations'
-                  ? 'Decompose the polynomial into linear factors over ℂ using the identity x² − r² = (x − r)(x + r) = 0. Setting each linear factor independently to zero yields the exact same root set.'
-                  : problemInput.includes('\\int') || solutionData?.domain === 'calculus'
-                  ? 'Express the rational component in linear and quadratic factors, integrate using logarithmic and arctangent differentials, and recombine to final canonical form.'
-                  : 'Apply synthetic factoring and polynomial division to extract linear roots and irreducible components.'}
-              </p>
-              {solutionData && solutionData.success && (
-                <div className="mt-3 p-3 bg-indigo-950/30 border border-indigo-800/40 rounded-xl">
-                  <div className="text-[10px] text-indigo-400 font-semibold mb-1">Result:</div>
-                  <MathRenderer content={`$$${solutionData.latex_solution}$$`} displayMode={false} />
                 </div>
               )}
             </div>

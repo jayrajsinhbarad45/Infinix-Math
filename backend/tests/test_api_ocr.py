@@ -44,7 +44,17 @@ class TestSanitizeLatex:
 class TestOcrApiEndpoints:
     """Tests for /api/v1/ocr/extract endpoint."""
 
-    def test_ocr_extract_valid_image(self, client: TestClient):
+    def test_ocr_extract_valid_image(self, client: TestClient, monkeypatch):
+        monkeypatch.setattr(
+            "app.api.v1.endpoints.ocr.gemini_bridge.extract_latex_from_image",
+            lambda image_bytes, mime_type: {
+                "success": True,
+                "latex": r"\frac{x^2 - 4}{x - 2} = 4",
+                "confidence": 0.95,
+                "detected_domain": "equations",
+                "warnings": [],
+            },
+        )
         img_bytes = create_mock_equation_image()
         files = {
             "file": ("equation.png", img_bytes, "image/png"),
