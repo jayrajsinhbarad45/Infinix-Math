@@ -3,13 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  BookOpen,
   CheckCircle2,
-  FileText,
-  Grid3X3,
   Infinity as InfinityIcon,
   Loader2,
-  RefreshCw,
   Sparkles,
   TrendingUp,
   Wifi,
@@ -93,78 +89,14 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* View: PDF Homework Helper (Phase 4) */}
-      {activeTab === 'pdf_helper' && (
-        <div className="max-w-4xl mx-auto py-16 text-center space-y-6 animate-in fade-in duration-300 bg-white rounded-3xl border border-slate-200/80 p-8 shadow-sm">
-          <div className="w-16 h-16 mx-auto rounded-3xl bg-sky-50 border border-sky-200 flex items-center justify-center text-sky-600 shadow-sm">
-            <FileText className="w-8 h-8" />
-          </div>
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-100/70 border border-sky-200 text-sky-700 text-xs font-semibold">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Phase 4 Module</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">PDF Homework Helper Workspace</h2>
-            <p className="text-sm text-slate-500 max-w-lg mx-auto">
-              Upload multi-page textbook PDFs, use the bounding-box lasso tool to crop questions, and solve them side-by-side with full document annotation tools.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* View: Graphing Calculator (Phase 5) */}
+      {/* View: Graphing Calculator */}
       {activeTab === 'graphing' && (
-        <div className="max-w-4xl mx-auto py-16 text-center space-y-6 animate-in fade-in duration-300 bg-white rounded-3xl border border-slate-200/80 p-8 shadow-sm">
-          <div className="w-16 h-16 mx-auto rounded-3xl bg-sky-50 border border-sky-200 flex items-center justify-center text-sky-600 shadow-sm">
-            <TrendingUp className="w-8 h-8" />
-          </div>
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-100/70 border border-sky-200 text-sky-700 text-xs font-semibold">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Phase 5 Module</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">Interactive 2D & 3D Graphing Canvas</h2>
-            <p className="text-sm text-slate-500 max-w-lg mx-auto">
-              Plot explicit, implicit, polar, and parametric functions. Inspect critical points, calculate tangent line slopes, and visualize 3D multivariable surfaces.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* View: 45+ Calculators (Phase 5) */}
-      {activeTab === 'calculators' && (
-        <div className="max-w-4xl mx-auto py-16 text-center space-y-6 animate-in fade-in duration-300 bg-white rounded-3xl border border-slate-200/80 p-8 shadow-sm">
-          <div className="w-16 h-16 mx-auto rounded-3xl bg-sky-50 border border-sky-200 flex items-center justify-center text-sky-600 shadow-sm">
-            <Grid3X3 className="w-8 h-8" />
-          </div>
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-100/70 border border-sky-200 text-sky-700 text-xs font-semibold">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Phase 5 Module</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">45+ Specialized Subject Calculators</h2>
-            <p className="text-sm text-slate-500 max-w-lg mx-auto">
-              Dedicated calculators for Fractions, Polynomial Factoring, Quadratic Equations, Derivatives, Integrals, Limits, Matrix RREF, Normal Distribution, and Physics.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* View: Notebooks & Study Suite (Phase 6) */}
-      {activeTab === 'notebooks' && (
-        <div className="max-w-4xl mx-auto py-16 text-center space-y-6 animate-in fade-in duration-300 bg-white rounded-3xl border border-slate-200/80 p-8 shadow-sm">
-          <div className="w-16 h-16 mx-auto rounded-3xl bg-sky-50 border border-sky-200 flex items-center justify-center text-sky-600 shadow-sm">
-            <BookOpen className="w-8 h-8" />
-          </div>
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-100/70 border border-sky-200 text-sky-700 text-xs font-semibold">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Phase 6 Module</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">Subject Notebooks & Study Suite</h2>
-            <p className="text-sm text-slate-500 max-w-lg mx-auto">
-              Organize solved problems into class notebooks, generate digital flashcards automatically, and test yourself with adaptive diagnostic quizzes.
-            </p>
+        <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm">
+            <h2 className="text-xl font-bold text-slate-900 mb-2">Interactive Graphing Studio</h2>
+            <p className="text-xs text-slate-500 mb-4">Plot algebraic functions, inspect critical points, and observe root behaviors in real time.</p>
+            {/* Direct solver workspace graph viewer */}
+            <SolverWorkspace />
           </div>
         </div>
       )}

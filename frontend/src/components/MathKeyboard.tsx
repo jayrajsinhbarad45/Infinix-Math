@@ -180,17 +180,24 @@ export const MathKeyboard: React.FC<MathKeyboardProps> = ({ onInsert, isVisible 
 
       {/* Key Grid */}
       <div className="pt-2.5 grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-1.5">
-        {KEYS[activeTab].map((key, i) => (
-          <button
-            key={`${activeTab}-${i}`}
-            type="button"
-            title={key.title}
-            onClick={() => onInsert(key.latex, key.hasCursor ?? false)}
-            className="flex items-center justify-center h-9 px-1.5 rounded-xl bg-slate-50/90 border border-slate-200/90 text-slate-700 text-xs sm:text-sm font-mono font-medium hover:bg-sky-50 hover:border-sky-300 hover:text-sky-700 active:scale-95 transition-all cursor-pointer select-none shadow-xs"
-          >
-            {key.label}
-          </button>
-        ))}
+        {KEYS[activeTab].map((key, i) => {
+          const isOperator = ['+', '−', '×', '÷', '='].includes(key.label);
+          return (
+            <button
+              key={`${activeTab}-${i}`}
+              type="button"
+              title={key.title}
+              onClick={() => onInsert(key.latex, key.hasCursor ?? false)}
+              className={`flex items-center justify-center h-9 px-1.5 rounded-xl text-xs sm:text-sm font-mono font-medium active:scale-95 transition-all cursor-pointer select-none shadow-xs ${
+                isOperator
+                  ? 'bg-[#00a8ff] hover:bg-[#0096e6] text-white font-bold border border-sky-400/40 shadow-sky-400/20'
+                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-sky-50 hover:border-sky-300 hover:text-sky-700'
+              }`}
+            >
+              {key.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Hint */}

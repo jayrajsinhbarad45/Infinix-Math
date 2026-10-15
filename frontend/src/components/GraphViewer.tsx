@@ -304,17 +304,37 @@ export const GraphViewer: React.FC<GraphViewerProps> = ({
       </div>
 
       {/* SVG canvas */}
-      <div className="relative flex-1 flex items-center justify-center overflow-hidden bg-slate-50/50 rounded-xl border border-slate-100">
+      <div className="relative flex-1 flex items-center justify-center overflow-hidden bg-white rounded-2xl border border-slate-100 min-h-[320px]">
+        {/* Floating Concept B Legend Card */}
+        <div className="absolute top-3 left-3 z-10 bg-white/95 backdrop-blur-md rounded-2xl p-3 shadow-md shadow-sky-950/5 border border-slate-200/80 text-[10px] space-y-1.5 font-semibold text-slate-700">
+          <div className="flex items-center gap-2">
+            <span className="w-4 h-0.5 bg-[#00a8ff] rounded-full inline-block" />
+            <span>y = f(x)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-4 h-0.5 bg-[#06b6d4] rounded-full inline-block" />
+            <span>y = g(x)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-4 h-0.5 bg-[#f59e0b] rounded-full inline-block" />
+            <span>Tangent Line</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-slate-900 inline-block" />
+            <span>Roots</span>
+          </div>
+        </div>
+
         <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full select-none">
           <defs>
             <linearGradient id="curve-grad-primary" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#0284c7" />
+              <stop offset="0%" stopColor="#00a8ff" />
               <stop offset="50%" stopColor="#06b6d4" />
               <stop offset="100%" stopColor="#2563eb" />
             </linearGradient>
             <linearGradient id="curve-grad-secondary" x1="0%" y1="100%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#0284c7" stopOpacity="0.4" />
-              <stop offset="100%" stopColor="#0ea5e9" stopOpacity="0.8" />
+              <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.6" />
+              <stop offset="100%" stopColor="#00a8ff" stopOpacity="0.9" />
             </linearGradient>
           </defs>
 
