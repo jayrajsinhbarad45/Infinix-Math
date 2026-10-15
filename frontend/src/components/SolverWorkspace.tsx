@@ -364,16 +364,16 @@ export const SolverWorkspace: React.FC = () => {
     <div className="w-full max-w-6xl mx-auto space-y-4 animate-in fade-in duration-300">
 
       {/* ===== INPUT CARD ===== */}
-      <div className="relative rounded-2xl bg-[#0d1424]/90 border border-indigo-500/50 p-5 sm:p-6 shadow-2xl shadow-indigo-500/10 backdrop-blur-xl space-y-4">
+      <div className="relative rounded-2xl bg-white border-2 border-sky-200/90 p-5 sm:p-6 shadow-xl shadow-sky-100/50 backdrop-blur-xl space-y-4">
 
         {/* Formula Input Row */}
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <label className="text-xs font-semibold text-indigo-400 uppercase tracking-wider">
-              Formula
+            <label className="text-xs font-bold text-sky-600 uppercase tracking-wider">
+              Formula Input
             </label>
             {isListening && voiceTranscript && (
-              <span className="text-xs text-emerald-400 font-mono animate-pulse">
+              <span className="text-xs text-sky-600 font-mono animate-pulse">
                 🎤 {voiceTranscript}
               </span>
             )}
@@ -385,19 +385,19 @@ export const SolverWorkspace: React.FC = () => {
             value={problemInput}
             onChange={(e) => setProblemInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type or build a LaTeX formula...  e.g.  \int x^2 dx"
-            className="w-full bg-transparent border-none text-slate-100 font-mono text-base sm:text-lg outline-none placeholder-slate-500/60 py-1"
+            placeholder="Type or build a LaTeX formula...  e.g.  5x^2 + 9x + 1 = 0"
+            className="w-full bg-transparent border-none text-slate-900 font-mono text-base sm:text-lg outline-none placeholder-slate-400 py-1"
             id="formula-input"
             autoComplete="off"
             spellCheck={false}
           />
 
           {/* Live KaTeX render */}
-          <div className="py-2 overflow-x-auto text-indigo-100 text-xl font-medium border-t border-slate-800/80 min-h-[2.5rem]">
+          <div className="py-2 overflow-x-auto text-sky-950 text-xl font-medium border-t border-slate-100 min-h-[2.5rem]">
             {problemInput.trim() ? (
               <MathRenderer content={`$$${problemInput}$$`} displayMode={true} />
             ) : (
-              <span className="text-slate-600 text-sm font-sans">
+              <span className="text-slate-400 text-sm font-sans">
                 Formula preview will appear here...
               </span>
             )}
@@ -406,14 +406,14 @@ export const SolverWorkspace: React.FC = () => {
 
         {/* Error banner */}
         {(solveError || voiceError) && (
-          <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-950/40 border border-rose-800/50 text-rose-300 text-xs">
-            <XCircle className="w-4 h-4 shrink-0 text-rose-400" />
+          <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
+            <XCircle className="w-4 h-4 shrink-0 text-rose-500" />
             <span>{solveError || voiceError}</span>
           </div>
         )}
 
         {/* Action Row */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-800/80">
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100">
           <div className="flex flex-wrap items-center gap-2">
 
             {/* Virtual Keyboard toggle */}
@@ -424,11 +424,11 @@ export const SolverWorkspace: React.FC = () => {
               title="Toggle Virtual Math Keyboard"
               className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all ${
                 showKeyboard
-                  ? 'bg-indigo-500/20 border-indigo-500/60 text-indigo-300'
-                  : 'bg-slate-900/90 border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white'
+                  ? 'bg-sky-50 border-sky-300 text-sky-700 shadow-xs'
+                  : 'bg-slate-50 border-slate-200 hover:border-sky-300 text-slate-700 hover:text-sky-700 hover:bg-sky-50/50'
               }`}
             >
-              <Keyboard className="w-3.5 h-3.5 text-indigo-400" />
+              <Keyboard className="w-3.5 h-3.5 text-sky-600" />
               <span>Math Keyboard</span>
             </button>
 
@@ -437,9 +437,9 @@ export const SolverWorkspace: React.FC = () => {
               type="button"
               id="btn-ocr-tool"
               onClick={() => setModalMode('ocr')}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white text-xs font-medium transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-sky-300 text-slate-700 hover:text-sky-700 hover:bg-sky-50/50 text-xs font-medium transition-colors cursor-pointer"
             >
-              <Camera className="w-3.5 h-3.5 text-indigo-400" />
+              <Camera className="w-3.5 h-3.5 text-sky-600" />
               <span>Camera OCR</span>
             </button>
 
@@ -448,9 +448,9 @@ export const SolverWorkspace: React.FC = () => {
               type="button"
               id="btn-draw-tool"
               onClick={() => setModalMode('draw')}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white text-xs font-medium transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-sky-300 text-slate-700 hover:text-sky-700 hover:bg-sky-50/50 text-xs font-medium transition-colors cursor-pointer"
             >
-              <PenTool className="w-3.5 h-3.5 text-indigo-400" />
+              <PenTool className="w-3.5 h-3.5 text-sky-600" />
               <span>Drawing Pad</span>
             </button>
 
@@ -462,31 +462,31 @@ export const SolverWorkspace: React.FC = () => {
               title={isListening ? 'Stop listening' : 'Start voice math dictation'}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all ${
                 isListening
-                  ? 'bg-rose-500/20 border-rose-500/60 text-rose-300 animate-pulse'
-                  : 'bg-slate-900/90 border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white'
+                  ? 'bg-rose-50 border-rose-300 text-rose-700 animate-pulse'
+                  : 'bg-slate-50 border-slate-200 hover:border-sky-300 text-slate-700 hover:text-sky-700 hover:bg-sky-50/50'
               }`}
             >
               {isListening ? (
                 <>
-                  <MicOff className="w-3.5 h-3.5 text-rose-400" />
+                  <MicOff className="w-3.5 h-3.5 text-rose-600" />
                   <span>Stop Mic</span>
                 </>
               ) : (
                 <>
-                  <Mic className="w-3.5 h-3.5 text-indigo-400" />
+                  <Mic className="w-3.5 h-3.5 text-sky-600" />
                   <span>Voice Input</span>
                 </>
               )}
             </button>
 
-            {/* PDF Upload (Phase 4 placeholder) */}
+            {/* PDF Upload */}
             <button
               type="button"
               id="btn-pdf-upload"
               onClick={() => alert('PDF Homework Helper available in Phase 4')}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white text-xs font-medium transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-sky-300 text-slate-700 hover:text-sky-700 hover:bg-sky-50/50 text-xs font-medium transition-colors cursor-pointer"
             >
-              <FileUp className="w-3.5 h-3.5 text-indigo-400" />
+              <FileUp className="w-3.5 h-3.5 text-sky-600" />
               <span>PDF Upload</span>
             </button>
           </div>
@@ -497,18 +497,18 @@ export const SolverWorkspace: React.FC = () => {
             id="btn-main-solve"
             onClick={() => handleSolve()}
             disabled={isSolving || !problemInput.trim()}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-white to-slate-200 hover:from-slate-100 hover:to-white text-slate-950 font-bold text-sm shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
+            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 via-sky-600 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white font-bold text-sm shadow-md shadow-sky-500/25 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
           >
             {isSolving ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
                 <span>Solving...</span>
               </>
             ) : (
               <>
-                <Sparkles className="w-4 h-4" />
+                <Sparkles className="w-4 h-4 text-sky-200" />
                 <span>Solve</span>
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-4 h-4 text-sky-200" />
               </>
             )}
           </button>
@@ -523,17 +523,17 @@ export const SolverWorkspace: React.FC = () => {
 
       {/* ===== OCR MODAL ===== */}
       {modalMode === 'ocr' && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-xl bg-[#0d1424] border border-slate-700 rounded-3xl p-6 relative shadow-2xl">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-xl bg-white border border-slate-200 rounded-3xl p-6 relative shadow-2xl">
             <button
               type="button"
               onClick={() => setModalMode('none')}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white text-sm transition-colors"
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-800 text-sm transition-colors cursor-pointer"
             >
               ✕ Close
             </button>
-            <h3 className="text-base font-bold text-white mb-1">Camera Photo Math OCR</h3>
-            <p className="text-xs text-slate-400 mb-4">
+            <h3 className="text-base font-bold text-slate-900 mb-1">Camera Photo Math OCR</h3>
+            <p className="text-xs text-slate-500 mb-4">
               Upload or drag a photo of your handwritten or printed equation. Gemini Vision will extract it as LaTeX.
             </p>
             <ImageUploader onExtractionSuccess={handleOcrSuccess} onError={(msg) => setSolveError(msg)} />
@@ -543,17 +543,17 @@ export const SolverWorkspace: React.FC = () => {
 
       {/* ===== DRAWING PAD MODAL ===== */}
       {modalMode === 'draw' && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-xl bg-[#0d1424] border border-slate-700 rounded-3xl p-6 relative shadow-2xl">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-xl bg-white border border-slate-200 rounded-3xl p-6 relative shadow-2xl">
             <button
               type="button"
               onClick={() => setModalMode('none')}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white text-sm transition-colors"
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-800 text-sm transition-colors cursor-pointer"
             >
               ✕ Close
             </button>
-            <h3 className="text-base font-bold text-white mb-1">Digital Ink Drawing Pad</h3>
-            <p className="text-xs text-slate-400 mb-4">
+            <h3 className="text-base font-bold text-slate-900 mb-1">Digital Ink Drawing Pad</h3>
+            <p className="text-xs text-slate-500 mb-4">
               Handwrite your equation on the canvas below using mouse, touch, or stylus. Then click Transcribe to convert it.
             </p>
             <DrawingCanvas onExtractionSuccess={handleOcrSuccess} onError={(msg) => setSolveError(msg)} />
@@ -565,21 +565,21 @@ export const SolverWorkspace: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
         {/* Left: Step-by-Step Solution Card */}
-        <div className="lg:col-span-7 bg-[#0d1424]/90 border border-slate-800/90 rounded-2xl p-6 shadow-xl space-y-5">
+        <div className="lg:col-span-7 bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xl shadow-slate-200/50 space-y-5">
 
           {/* Solution Header */}
-          <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
             <div>
-              <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
+              <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
                 {isSolving ? 'Solving Problem...' : solutionData ? 'Step-by-Step Solution' : 'Solution Workspace'}
               </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-500 mt-0.5">
                 Clear mathematical derivation and simplified proof
               </p>
             </div>
             {solutionData?.is_symbolically_verified && !isSolving && (
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/40 border border-emerald-800/50 text-emerald-300 text-xs font-semibold">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold shadow-xs">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                 <span>SymPy Verified</span>
               </div>
             )}
@@ -588,8 +588,8 @@ export const SolverWorkspace: React.FC = () => {
           {/* Solving spinner */}
           {isSolving && (
             <div className="flex flex-col items-center justify-center py-12 gap-3">
-              <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
-              <p className="text-sm text-slate-400">Computing step-by-step mathematical derivation...</p>
+              <Loader2 className="w-8 h-8 animate-spin text-sky-600" />
+              <p className="text-sm text-slate-500">Computing step-by-step mathematical derivation...</p>
             </div>
           )}
 
@@ -599,37 +599,37 @@ export const SolverWorkspace: React.FC = () => {
               {solutionData && solutionData.structured_steps.length > 0 ? (
                 <>
                   {/* Final Answer Banner */}
-                  <div className="p-4 rounded-xl bg-gradient-to-r from-indigo-950/50 via-purple-950/30 to-slate-900 border border-indigo-700/50 space-y-2 shadow-inner">
+                  <div className="p-4 rounded-xl bg-gradient-to-r from-sky-50 via-blue-50/80 to-indigo-50/50 border border-sky-200 space-y-2 shadow-xs">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-300">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-sky-700">
                         Final Answer
                       </span>
-                      <span className="text-[10px] text-slate-400 font-mono">
+                      <span className="text-[10px] text-slate-500 font-mono">
                         {solutionData.execution_time_ms}ms · {solutionData.domain}
                       </span>
                     </div>
-                    <div className="overflow-x-auto py-1 text-center sm:text-left">
+                    <div className="overflow-x-auto py-1 text-center sm:text-left text-slate-900">
                       <MathRenderer content={cleanStepLatex(solutionData.latex_solution)} displayMode={true} />
                     </div>
                   </div>
 
                   {/* Steps List */}
-                  <div className="space-y-4 divide-y divide-slate-800/40 pt-2">
+                  <div className="space-y-4 divide-y divide-slate-100 pt-2">
                     {solutionData.structured_steps.map((st) => {
                       const stepMath = cleanStepLatex(st.latex);
                       const stepTitle = cleanStepDescription(st.description, st.step_number);
 
                       return (
                         <div key={st.step_number} className="pt-4 first:pt-0 flex items-start gap-3.5">
-                          <div className="w-7 h-7 rounded-full bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+                          <div className="w-7 h-7 rounded-full bg-sky-100 border border-sky-300 text-sky-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
                             {st.step_number}
                           </div>
-                          <div className="space-y-2 text-xs sm:text-sm text-slate-200 flex-1 min-w-0">
-                            <div className="font-semibold text-slate-200 text-sm">
+                          <div className="space-y-2 text-xs sm:text-sm text-slate-800 flex-1 min-w-0">
+                            <div className="font-semibold text-slate-900 text-sm">
                               <MathRenderer content={stepTitle} displayMode={false} />
                             </div>
                             {stepMath && (
-                              <div className="overflow-x-auto p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 text-indigo-200 shadow-inner">
+                              <div className="overflow-x-auto p-3.5 rounded-xl bg-slate-50/80 border border-slate-200/90 text-slate-900 shadow-xs">
                                 <MathRenderer content={stepMath} displayMode={true} />
                               </div>
                             )}
@@ -660,13 +660,13 @@ export const SolverWorkspace: React.FC = () => {
                     },
                   ].map((s) => (
                     <div key={s.n} className="flex items-start gap-3.5 pt-2">
-                      <div className="w-7 h-7 rounded-full bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+                      <div className="w-7 h-7 rounded-full bg-sky-100 border border-sky-300 text-sky-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
                         {s.n}
                       </div>
-                      <div className="space-y-2 text-xs sm:text-sm text-slate-200 flex-1 min-w-0">
-                        <div className="font-semibold text-slate-300">{s.desc}</div>
+                      <div className="space-y-2 text-xs sm:text-sm text-slate-800 flex-1 min-w-0">
+                        <div className="font-semibold text-slate-900">{s.desc}</div>
                         {s.math && (
-                          <div className="overflow-x-auto p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 text-indigo-200">
+                          <div className="overflow-x-auto p-3.5 rounded-xl bg-slate-50/80 border border-slate-200/90 text-slate-900 shadow-xs">
                             <MathRenderer content={s.math} displayMode={true} />
                           </div>
                         )}
@@ -675,20 +675,20 @@ export const SolverWorkspace: React.FC = () => {
                   ))}
                 </div>
               ) : solutionData && !solutionData.success ? (
-                <div className="p-4 rounded-2xl bg-amber-950/20 border border-amber-800/40 space-y-3">
-                  <div className="flex items-center gap-2 text-amber-300 font-semibold text-xs">
-                    <XCircle className="w-4 h-4 text-amber-400" />
+                <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 space-y-3 text-amber-900">
+                  <div className="flex items-center gap-2 text-amber-800 font-semibold text-xs">
+                    <XCircle className="w-4 h-4 text-amber-600" />
                     <span>Solver Notice</span>
                   </div>
-                  <p className="text-xs text-slate-300 leading-relaxed">
+                  <p className="text-xs text-amber-800 leading-relaxed">
                     {solutionData.error || 'The symbolic engine could not compute steps for this input.'}
                   </p>
-                  <p className="text-[11px] text-slate-400">
-                    Tips: Ensure balanced brackets, explicit operators (e.g. <code className="text-amber-200">2*x</code> or <code className="text-amber-200">x^2 + 44 = 0</code>), or use the virtual Math Keyboard below.
+                  <p className="text-[11px] text-amber-700">
+                    Tips: Ensure balanced brackets, explicit operators (e.g. <code className="text-amber-900 font-bold">2*x</code> or <code className="text-amber-900 font-bold">x^2 + 44 = 0</code>), or use the virtual Math Keyboard below.
                   </p>
                 </div>
               ) : (
-                <div className="py-8 text-center text-sm text-slate-500">
+                <div className="py-8 text-center text-sm text-slate-400">
                   Backend returned no steps. Try a different expression.
                 </div>
               )}

@@ -157,10 +157,10 @@ export const MathKeyboard: React.FC<MathKeyboardProps> = ({ onInsert, isVisible 
   return (
     <div
       id="math-virtual-keyboard"
-      className="w-full bg-[#0d1424]/95 border border-indigo-500/30 rounded-2xl p-3 shadow-2xl shadow-indigo-500/10 backdrop-blur-xl animate-in slide-in-from-bottom-2 duration-200"
+      className="w-full bg-white/95 border border-sky-200/90 rounded-2xl p-3 shadow-xl shadow-sky-100/60 backdrop-blur-xl animate-in slide-in-from-bottom-2 duration-200"
     >
       {/* Tab Bar */}
-      <div className="flex items-center gap-1 pb-2.5 border-b border-slate-800/80 overflow-x-auto no-scrollbar">
+      <div className="flex items-center gap-1 pb-2.5 border-b border-slate-100 overflow-x-auto no-scrollbar">
         {KEYBOARD_TABS.map((tab) => (
           <button
             key={tab.id}
@@ -169,8 +169,8 @@ export const MathKeyboard: React.FC<MathKeyboardProps> = ({ onInsert, isVisible 
             onClick={() => setActiveTab(tab.id)}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
               activeTab === tab.id
-                ? 'bg-gradient-to-r from-indigo-500/90 to-violet-600/90 text-white shadow-md shadow-indigo-500/20'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-md shadow-sky-500/20'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
             }`}
           >
             {tab.label}
@@ -186,7 +186,7 @@ export const MathKeyboard: React.FC<MathKeyboardProps> = ({ onInsert, isVisible 
             type="button"
             title={key.title}
             onClick={() => onInsert(key.latex, key.hasCursor ?? false)}
-            className="flex items-center justify-center h-9 px-1.5 rounded-xl bg-slate-900/80 border border-slate-700/60 text-slate-200 text-xs sm:text-sm font-mono font-medium hover:bg-indigo-500/20 hover:border-indigo-500/60 hover:text-white active:scale-95 transition-all cursor-pointer select-none shadow-sm"
+            className="flex items-center justify-center h-9 px-1.5 rounded-xl bg-slate-50/90 border border-slate-200/90 text-slate-700 text-xs sm:text-sm font-mono font-medium hover:bg-sky-50 hover:border-sky-300 hover:text-sky-700 active:scale-95 transition-all cursor-pointer select-none shadow-xs"
           >
             {key.label}
           </button>
@@ -194,7 +194,7 @@ export const MathKeyboard: React.FC<MathKeyboardProps> = ({ onInsert, isVisible 
       </div>
 
       {/* Hint */}
-      <div className="pt-2.5 text-[10px] text-slate-500 text-center border-t border-slate-800/80 mt-2">
+      <div className="pt-2.5 text-[10px] text-slate-400 text-center border-t border-slate-100 mt-2">
         Click any key to insert LaTeX into the formula bar above
       </div>
     </div>

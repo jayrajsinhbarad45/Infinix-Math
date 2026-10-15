@@ -282,46 +282,39 @@ export const GraphViewer: React.FC<GraphViewerProps> = ({
   const displayFormula = formulaLabel || (effectiveLatex ? `f(x) = ${effectiveLatex}` : 'f(x)');
 
   return (
-    <div className="w-full h-full bg-[#0d1424]/90 border border-slate-800/90 rounded-2xl p-4 flex flex-col gap-3 shadow-xl">
+    <div className="w-full h-full bg-white border border-slate-200/90 rounded-2xl p-4 flex flex-col gap-3 shadow-xl shadow-slate-200/50">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-indigo-400" />
-          <span className="text-xs font-semibold text-slate-300">
-            Interactive Graph
+          <TrendingUp className="w-4 h-4 text-sky-600" />
+          <span className="text-xs font-bold text-slate-900">
+            Interactive Coordinate Graph
           </span>
         </div>
         {isCustom && (
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-900/40 border border-emerald-700/40 text-emerald-300 font-medium">
-            Dynamic
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-50 border border-sky-200 text-sky-700 font-medium">
+            Dynamic Function
           </span>
         )}
       </div>
 
       {/* Formula label rendered with MathRenderer */}
-      <div className="text-center text-xs text-indigo-300 tracking-wide overflow-x-auto py-0.5 min-h-[26px]">
+      <div className="text-center text-xs text-sky-800 font-medium tracking-wide overflow-x-auto py-0.5 min-h-[26px]">
         <MathRenderer content={`$$${displayFormula}$$`} displayMode={false} />
       </div>
 
       {/* SVG canvas */}
-      <div className="relative flex-1 flex items-center justify-center overflow-hidden">
+      <div className="relative flex-1 flex items-center justify-center overflow-hidden bg-slate-50/50 rounded-xl border border-slate-100">
         <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full select-none">
           <defs>
-            <filter id="neon-glow-gv" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
             <linearGradient id="curve-grad-primary" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#818cf8" />
-              <stop offset="50%" stopColor="#c084fc" />
-              <stop offset="100%" stopColor="#38bdf8" />
+              <stop offset="0%" stopColor="#0284c7" />
+              <stop offset="50%" stopColor="#06b6d4" />
+              <stop offset="100%" stopColor="#2563eb" />
             </linearGradient>
             <linearGradient id="curve-grad-secondary" x1="0%" y1="100%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#6366f1" stopOpacity="0.35" />
-              <stop offset="100%" stopColor="#a855f7" stopOpacity="0.7" />
+              <stop offset="0%" stopColor="#0284c7" stopOpacity="0.4" />
+              <stop offset="100%" stopColor="#0ea5e9" stopOpacity="0.8" />
             </linearGradient>
           </defs>
 
@@ -333,7 +326,7 @@ export const GraphViewer: React.FC<GraphViewerProps> = ({
               y1={0}
               x2={toSvgX(t)}
               y2={height}
-              stroke="#1e293b"
+              stroke="#e2e8f0"
               strokeWidth="0.8"
               strokeDasharray="2,3"
             />
@@ -345,7 +338,7 @@ export const GraphViewer: React.FC<GraphViewerProps> = ({
               y1={toSvgY(t)}
               x2={width}
               y2={toSvgY(t)}
-              stroke="#1e293b"
+              stroke="#e2e8f0"
               strokeWidth="0.8"
               strokeDasharray="2,3"
             />
@@ -357,21 +350,21 @@ export const GraphViewer: React.FC<GraphViewerProps> = ({
             y1={clampedOriginY}
             x2={width}
             y2={clampedOriginY}
-            stroke="#475569"
+            stroke="#94a3b8"
             strokeWidth="1.2"
           />
           <polygon
             points={`${width},${clampedOriginY} ${width - 6},${clampedOriginY - 3} ${width - 6},${clampedOriginY + 3}`}
             fill="#64748b"
           />
-          <text x={width - 10} y={clampedOriginY + 14} fill="#94a3b8" fontSize="10" fontFamily="monospace">
+          <text x={width - 10} y={clampedOriginY + 14} fill="#64748b" fontSize="10" fontFamily="monospace">
             x
           </text>
 
           {/* Y Axis */}
-          <line x1={toSvgX(0)} y1={height} x2={toSvgX(0)} y2={0} stroke="#475569" strokeWidth="1.2" />
+          <line x1={toSvgX(0)} y1={height} x2={toSvgX(0)} y2={0} stroke="#94a3b8" strokeWidth="1.2" />
           <polygon points={`${toSvgX(0)},0 ${toSvgX(0) - 3},6 ${toSvgX(0) + 3},6`} fill="#64748b" />
-          <text x={toSvgX(0) - 14} y={12} fill="#94a3b8" fontSize="10" fontFamily="monospace">
+          <text x={toSvgX(0) - 14} y={12} fill="#64748b" fontSize="10" fontFamily="monospace">
             y
           </text>
 
@@ -411,7 +404,7 @@ export const GraphViewer: React.FC<GraphViewerProps> = ({
               stroke="url(#curve-grad-secondary)"
               strokeWidth="1.5"
               strokeDasharray="4,2"
-              opacity="0.7"
+              opacity="0.8"
             />
           )}
 
@@ -421,23 +414,22 @@ export const GraphViewer: React.FC<GraphViewerProps> = ({
             fill="none"
             stroke="url(#curve-grad-primary)"
             strokeWidth="2.5"
-            filter="url(#neon-glow-gv)"
           />
 
           {/* Origin dot */}
-          {isZeroInYRange && <circle cx={toSvgX(0)} cy={toSvgY(0)} r="3" fill="#a855f7" />}
+          {isZeroInYRange && <circle cx={toSvgX(0)} cy={toSvgY(0)} r="3" fill="#0284c7" />}
         </svg>
       </div>
 
       {/* Legend */}
       <div className="flex items-center gap-4 text-[10px] text-slate-500">
         <div className="flex items-center gap-1.5">
-          <div className="w-5 h-0.5 bg-gradient-to-r from-indigo-400 to-violet-400 rounded" />
-          <span>f(x)</span>
+          <div className="w-5 h-0.5 bg-gradient-to-r from-sky-500 to-blue-600 rounded" />
+          <span className="font-medium text-slate-700">f(x)</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-5 h-0.5 border-t border-dashed border-violet-500/50" />
-          <span>{"f'(x)"}</span>
+          <div className="w-5 h-0.5 border-t border-dashed border-sky-400" />
+          <span className="font-medium text-slate-700">{"f'(x)"}</span>
         </div>
       </div>
     </div>

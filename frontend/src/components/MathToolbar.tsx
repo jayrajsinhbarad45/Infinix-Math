@@ -60,13 +60,13 @@ const SYMBOL_GROUPS: SymbolGroup[] = [
 
 export const MathToolbar: React.FC<MathToolbarProps> = ({ onInsert }) => {
   return (
-    <div className="flex flex-wrap items-center gap-2 p-2 bg-slate-900/60 backdrop-blur-md rounded-xl border border-slate-800/80 shadow-inner">
+    <div className="flex flex-wrap items-center gap-2 p-2 bg-white/95 backdrop-blur-md rounded-xl border border-slate-200/90 shadow-sm">
       {SYMBOL_GROUPS.map((group) => (
         <div key={group.label} className="flex items-center gap-1">
-          <span className="text-[10px] font-semibold tracking-wider uppercase text-slate-500 px-1 hidden sm:inline">
+          <span className="text-[10px] font-bold tracking-wider uppercase text-slate-500 px-1 hidden sm:inline">
             {group.label}
           </span>
-          <div className="flex items-center gap-1 bg-slate-800/40 p-1 rounded-lg border border-slate-700/40">
+          <div className="flex items-center gap-1 bg-slate-50/90 p-1 rounded-lg border border-slate-200/70">
             {group.items.map((item) => (
               <button
                 key={item.label}
@@ -74,7 +74,7 @@ export const MathToolbar: React.FC<MathToolbarProps> = ({ onInsert }) => {
                 id={`btn-symbol-${item.label.replace(/[^a-zA-Z0-9]/g, '')}`}
                 onClick={() => onInsert(item.snippet)}
                 title={item.description}
-                className="px-2 py-1 text-xs font-mono font-medium text-slate-300 hover:text-white bg-slate-800/70 hover:bg-indigo-600/60 hover:border-indigo-500/50 rounded border border-slate-700/50 transition-all duration-150 active:scale-95 shadow-sm"
+                className="px-2 py-1 text-xs font-mono font-medium text-slate-700 hover:text-sky-700 bg-white hover:bg-sky-50 hover:border-sky-300 rounded border border-slate-200 transition-all duration-150 active:scale-95 shadow-sm"
               >
                 {item.label}
               </button>

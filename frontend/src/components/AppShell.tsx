@@ -58,16 +58,16 @@ export const AppShell: React.FC<AppShellProps> = ({
   ];
 
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col md:flex-row antialiased">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-800 flex flex-col md:flex-row antialiased">
       {/* Mobile Header Bar */}
-      <div className="md:hidden flex items-center justify-between px-4 py-3 bg-slate-950/90 border-b border-slate-800/80 sticky top-0 z-40 backdrop-blur-xl">
+      <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white/95 border-b border-slate-200/90 sticky top-0 z-40 backdrop-blur-xl shadow-xs">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 via-violet-600 to-fuchsia-600 p-[1.5px] shadow-md shadow-indigo-500/20">
-            <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center text-indigo-400">
-              <InfinityIcon className="w-4 h-4 text-indigo-400" />
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-sky-500 via-sky-600 to-blue-600 p-[1.5px] shadow-md shadow-sky-500/20">
+            <div className="w-full h-full bg-white rounded-[10px] flex items-center justify-center text-sky-600">
+              <InfinityIcon className="w-4 h-4 text-sky-600" />
             </div>
           </div>
-          <span className="font-bold text-base bg-gradient-to-r from-white to-slate-200 bg-clip-text text-transparent">
+          <span className="font-bold text-base bg-gradient-to-r from-slate-900 to-sky-950 bg-clip-text text-transparent">
             Infinix Math
           </span>
         </div>
@@ -75,7 +75,7 @@ export const AppShell: React.FC<AppShellProps> = ({
         <button
           type="button"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white"
+          className="p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 hover:text-slate-900"
         >
           {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
@@ -85,24 +85,24 @@ export const AppShell: React.FC<AppShellProps> = ({
       <aside
         className={`${
           mobileMenuOpen ? 'block' : 'hidden'
-        } md:flex flex-col justify-between fixed md:sticky top-0 h-screen z-50 bg-slate-950/95 border-r border-slate-800/80 backdrop-blur-2xl transition-all duration-300 ease-in-out ${
+        } md:flex flex-col justify-between fixed md:sticky top-0 h-screen z-50 bg-white/95 border-r border-slate-200/90 backdrop-blur-2xl transition-all duration-300 ease-in-out shadow-xs ${
           isCollapsed ? 'md:w-20' : 'md:w-64'
         } w-64`}
       >
         {/* Top: Brand Header & Collapser */}
         <div>
-          <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800/80">
+          <div className="h-16 flex items-center justify-between px-4 border-b border-slate-100">
             <div className="flex items-center gap-3 overflow-hidden">
-              <div className="w-9 h-9 shrink-0 rounded-xl overflow-hidden shadow-lg shadow-indigo-500/25 border border-indigo-500/40 bg-slate-950">
+              <div className="w-9 h-9 shrink-0 rounded-xl overflow-hidden shadow-md shadow-sky-500/20 border border-sky-200 bg-white">
                 <img src="/logo.png" alt="Infinix Math Logo" className="w-full h-full object-cover" />
               </div>
               {!isCollapsed && (
                 <div className="whitespace-nowrap">
-                  <span className="font-bold text-base tracking-tight bg-gradient-to-r from-white via-slate-100 to-indigo-200 bg-clip-text text-transparent">
+                  <span className="font-bold text-base tracking-tight bg-gradient-to-r from-slate-900 via-sky-950 to-blue-900 bg-clip-text text-transparent">
                     Infinix Math AI
                   </span>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-indigo-400">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-sky-600">
                       AI Math Engine
                     </span>
                   </div>
@@ -113,7 +113,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             <button
               type="button"
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className="hidden md:flex p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors"
+              className="hidden md:flex p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors"
               title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
               {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
@@ -136,14 +136,14 @@ export const AppShell: React.FC<AppShellProps> = ({
                   }}
                   className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs sm:text-sm font-semibold transition-all group ${
                     isActive
-                      ? 'bg-gradient-to-r from-indigo-500/90 to-violet-600/90 text-white shadow-lg shadow-indigo-500/20'
-                      : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/80'
+                      ? 'bg-gradient-to-r from-sky-50 to-blue-50/70 text-sky-700 border border-sky-200 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
                   }`}
                   title={isCollapsed ? item.label : undefined}
                 >
                   <Icon
                     className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${
-                      isActive ? 'text-white' : 'text-slate-400 group-hover:text-indigo-400'
+                      isActive ? 'text-sky-600' : 'text-slate-400 group-hover:text-sky-600'
                     }`}
                   />
                   {!isCollapsed && (
@@ -153,8 +153,8 @@ export const AppShell: React.FC<AppShellProps> = ({
                         <span
                           className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
                             isActive
-                              ? 'bg-indigo-700/60 text-indigo-100'
-                              : 'bg-slate-800/80 text-slate-400'
+                              ? 'bg-sky-200/60 text-sky-800'
+                              : 'bg-slate-100 text-slate-500'
                           }`}
                         >
                           {item.badge}
@@ -169,19 +169,19 @@ export const AppShell: React.FC<AppShellProps> = ({
         </div>
 
         {/* Bottom: User Profile & Logout */}
-        <div className="p-3 border-t border-slate-800/80 bg-slate-950/60">
-          <div className="flex items-center justify-between gap-2 p-2 rounded-2xl bg-slate-900/70 border border-slate-800/70">
+        <div className="p-3 border-t border-slate-100 bg-slate-50/60">
+          <div className="flex items-center justify-between gap-2 p-2 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
             <div className="flex items-center gap-2.5 overflow-hidden">
-              <div className="w-8 h-8 shrink-0 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-bold text-xs text-white shadow-md">
+              <div className="w-8 h-8 shrink-0 rounded-xl bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center font-bold text-xs text-white shadow-md">
                 AD
               </div>
               {!isCollapsed && (
                 <div className="overflow-hidden">
-                  <div className="text-xs font-bold text-slate-200 truncate">
+                  <div className="text-xs font-bold text-slate-800 truncate">
                     {user?.name || 'Admin User'}
                   </div>
-                  <div className="text-[10px] text-indigo-400 font-medium truncate flex items-center gap-1">
-                    <Sparkles className="w-3 h-3 text-indigo-400" />
+                  <div className="text-[10px] text-sky-600 font-medium truncate flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-sky-600" />
                     <span>Prime Pro • Active</span>
                   </div>
                 </div>
@@ -191,7 +191,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             <button
               type="button"
               onClick={logout}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
               title="Sign Out"
             >
               <LogOut className="w-4 h-4" />
@@ -203,11 +203,11 @@ export const AppShell: React.FC<AppShellProps> = ({
       {/* Main View Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Navbar */}
-        <header className="h-16 border-b border-slate-800/80 bg-slate-950/50 backdrop-blur-xl px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30">
+        <header className="h-16 border-b border-slate-200/80 bg-white/70 backdrop-blur-xl px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30 shadow-xs">
           <div className="flex items-center gap-3">
-            <span className="text-sm font-semibold text-slate-400">
+            <span className="text-sm font-semibold text-slate-500">
               Workspace &gt;{' '}
-              <span className="text-slate-100 font-bold capitalize">
+              <span className="text-slate-900 font-bold capitalize">
                 {currentTab.replace('_', ' ')}
               </span>
             </span>
@@ -215,8 +215,8 @@ export const AppShell: React.FC<AppShellProps> = ({
 
           <div className="flex items-center gap-3 sm:gap-4">
             {/* Live SymPy CAS Engine Status */}
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/40 border border-emerald-800/40 text-emerald-300 text-xs font-medium">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium shadow-xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
               <span className="hidden sm:inline">SymPy CAS Engine Live</span>
               <span className="sm:hidden">Live</span>
             </div>
@@ -226,7 +226,7 @@ export const AppShell: React.FC<AppShellProps> = ({
               href="https://github.com/jayrajsinhbarad45/Infinix-Math"
               target="_blank"
               rel="noopener noreferrer"
-              className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition-colors"
+              className="p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300 hover:bg-white shadow-xs transition-colors"
               title="GitHub Repository"
             >
               <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
