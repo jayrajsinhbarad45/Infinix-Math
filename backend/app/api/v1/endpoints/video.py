@@ -13,7 +13,7 @@ from app.services.manim_video_service import (
     MEDIA_DIR,
     generate_manim_video_sync,
 )
-from app.services.sympy_engine import SympyEngine
+from app.services.sympy_engine import sympy_engine
 
 router = APIRouter()
 
@@ -56,13 +56,11 @@ async def generate_video(payload: VideoGenerateRequest) -> VideoGenerateResponse
     steps = payload.steps
 
     if not solution_latex or not steps:
-        engine = SympyEngine()
-        solve_res = engine.solve(problem)
-        solution_latex = solve_res.latex_solution
-        steps = [
-            {"step_number": s.step_number, "description": s.description, "latex": s.latex}
-            for s in solve_res.structured_steps
-        ]
+        solve_res = sympy_engine.route_and_solve(problem)
+        solution_latex = solve_res.get("latex_solution", "")
+        steps = solve_res.get("structured_steps") or solve_res.get("steps") or []
+        if not steps:
+            steps = [{"step_number": 1, "description": "Solve algebraic equation", "latex": solution_latex}]
 
     try:
         # Run in threadpool so FastAPI event loop isn't blocked during video rendering

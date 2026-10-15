@@ -11,6 +11,10 @@ export function getApiBaseUrl(): string {
     if (saved && saved.trim()) {
       return saved.trim().replace(/\/+$/, '');
     }
+    // If testing locally in browser, automatically target the local FastAPI server
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return 'http://localhost:8000';
+    }
   }
   const envUrl = process.env.NEXT_PUBLIC_API_URL;
   if (envUrl && envUrl.trim()) {
