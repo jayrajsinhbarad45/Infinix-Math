@@ -5,16 +5,20 @@ import {
   ArrowRight,
   CheckCircle2,
   Copy,
+  Download,
+  Film,
   Keyboard,
   Loader2,
   Sparkles,
+  Video,
   Volume2,
+  X,
   XCircle,
 } from 'lucide-react';
 import MathRenderer from './MathRenderer';
 import GraphViewer from './GraphViewer';
 import MathKeyboard from './MathKeyboard';
-import { solveMathProblem } from '../lib/api';
+import { generateManimVideo, ManimVideoResponse, solveMathProblem } from '../lib/api';
 import { SolveResponse } from '../lib/types';
 
 function getGraphFormulaLabel(input: string): string {
@@ -70,8 +74,39 @@ export const SolverWorkspace: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [speaking, setSpeaking] = useState(false);
 
+  // Manim Video Explainer state
+  const [videoLoading, setVideoLoading] = useState(false);
+  const [videoData, setVideoData] = useState<ManimVideoResponse | null>(null);
+  const [videoError, setVideoError] = useState<string | null>(null);
+  const [showVideoModal, setShowVideoModal] = useState(false);
+
   // Input ref for cursor-aware insertion
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleGenerateVideo = async () => {
+    setShowVideoModal(true);
+    setVideoLoading(true);
+    setVideoError(null);
+
+    try {
+      const steps = solutionData?.structured_steps?.map((s) => ({
+        step_number: s.step_number,
+        description: s.description,
+        latex: s.latex,
+      }));
+
+      const res = await generateManimVideo({
+        problem_text: problemInput,
+        solution_latex: solutionData?.latex_solution,
+        steps: steps,
+      });
+      setVideoData(res);
+    } catch (err: unknown) {
+      setVideoError(err instanceof Error ? err.message : 'Video rendering failed');
+    } finally {
+      setVideoLoading(false);
+    }
+  };
 
   // -----------------------------------------------------------------------
   // Solve handler
@@ -399,7 +434,18 @@ export const SolverWorkspace: React.FC = () => {
               }`}
             >
               <Volume2 className="w-3.5 h-3.5" />
-              <span>{speaking ? 'Stop Audio' : 'Audio Solution'}</span>
+              <span>{speaking ? 'Stop Audio' : 'Audio'}</span>
+            </button>
+
+            <button
+              type="button"
+              id="btn-generate-manim-video"
+              onClick={handleGenerateVideo}
+              disabled={videoLoading}
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-500 via-sky-600 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-sky-500/25 active:scale-95 disabled:opacity-50 transition-all cursor-pointer"
+            >
+              <Film className="w-3.5 h-3.5" />
+              <span>{videoLoading ? 'Rendering...' : 'Manim Video'}</span>
             </button>
           </div>
         </div>
@@ -413,6 +459,98 @@ export const SolverWorkspace: React.FC = () => {
           />
         </div>
       </div>
+
+      {/* MANIM VIDEO EXPLAINER MODAL */}
+      {showVideoModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl bg-white border border-slate-200 rounded-3xl p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-sky-50 border border-sky-200 flex items-center justify-center text-[#00a8ff]">
+                  <Video className="w-4 h-4 text-[#00a8ff]" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Manim Mathematical Explainer</h3>
+                  <p className="text-[11px] text-slate-500 font-medium">3Blue1Brown Animation &bull; AI Voice Narration &bull; Graphing</p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowVideoModal(false)}
+                className="p-1.5 rounded-full text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Video Rendering State */}
+            {videoLoading && (
+              <div className="py-14 flex flex-col items-center justify-center text-center space-y-4">
+                <div className="relative">
+                  <div className="w-16 h-16 rounded-full border-4 border-sky-100 border-t-[#00a8ff] animate-spin" />
+                  <Film className="w-6 h-6 text-[#00a8ff] absolute inset-0 m-auto" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-sm font-bold text-slate-800">Rendering Mathematical Animation</h4>
+                  <p className="text-xs text-slate-500 max-w-sm">
+                    Manim is rendering vector steps, coordinate graph axes, and synchronizing crystal-clear AI voice narration...
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Error State */}
+            {!videoLoading && videoError && (
+              <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs space-y-2">
+                <div className="flex items-center gap-2 font-bold text-rose-700">
+                  <XCircle className="w-4 h-4 text-rose-600" />
+                  <span>Video Rendering Notice</span>
+                </div>
+                <p className="leading-relaxed">{videoError}</p>
+                <button
+                  type="button"
+                  onClick={handleGenerateVideo}
+                  className="mt-2 px-3 py-1.5 rounded-xl bg-rose-600 text-white font-bold text-xs hover:bg-rose-700 transition-colors cursor-pointer"
+                >
+                  Retry Generation
+                </button>
+              </div>
+            )}
+
+            {/* Video Player Display */}
+            {!videoLoading && videoData && (
+              <div className="space-y-4">
+                <div className="rounded-2xl overflow-hidden bg-black border border-slate-200 shadow-inner">
+                  <video
+                    src={videoData.url}
+                    controls
+                    autoPlay
+                    playsInline
+                    className="w-full aspect-video"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
+                  <span className="font-semibold text-slate-700">
+                    Duration: <span className="font-mono text-[#00a8ff] font-bold">{videoData.duration_seconds}s</span>
+                  </span>
+
+                  <a
+                    href={videoData.url}
+                    download={videoData.filename}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#e0f2fe] hover:bg-[#bae6fd] text-[#0284c7] font-bold text-xs transition-colors cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download MP4</span>
+                  </a>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

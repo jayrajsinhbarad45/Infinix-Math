@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter
-from app.api.v1.endpoints import health, ocr, solve, tutor
+from app.api.v1.endpoints import health, ocr, solve, tutor, video
 
 api_router = APIRouter()
 
@@ -17,5 +17,8 @@ api_router.include_router(ocr.router, prefix="/ocr", tags=["OCR"])
 
 # AI Tutor & Step Verification endpoint
 api_router.include_router(tutor.router, prefix="/tutor", tags=["Tutor"])
+
+# Manim Video Explainer endpoint
+api_router.include_router(video.router, prefix="/video", tags=["Video"])
 
 

@@ -184,3 +184,39 @@ export async function getTutorHint(
   }
 }
 
+export interface ManimVideoResponse {
+  success: boolean;
+  video_id: string;
+  filename: string;
+  duration_seconds: number;
+  url: string;
+}
+
+export async function generateManimVideo(payload: {
+  problem_text: string;
+  solution_latex?: string;
+  steps?: Array<{ step_number: number; description: string; latex: string }>;
+  voice?: string;
+}): Promise<ManimVideoResponse> {
+  const baseUrl = getApiBaseUrl();
+  const res = await fetch(`${baseUrl}/api/v1/video/generate`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.detail || `Video generation failed with status ${res.status}`);
+  }
+
+  const data: ManimVideoResponse = await res.json();
+  if (data.url && data.url.startsWith('/')) {
+    data.url = `${baseUrl}${data.url}`;
+  }
+  return data;
+}
+
+

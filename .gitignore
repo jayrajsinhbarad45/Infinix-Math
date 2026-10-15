@@ -60,5 +60,9 @@ stem-tutor-agent-master/
 # Office / Temporary Files
 ~$*
 *.tmp
+media/
+backend/media/
+*.mp4
+*.mp3
 
 
