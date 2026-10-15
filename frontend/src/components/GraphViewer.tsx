@@ -190,7 +190,7 @@ export const GraphViewer: React.FC<GraphViewerProps> = ({
   const xMax = 4.5;
 
   // Try parsing candidate expressions: prefer input if it is an equation, then solved, then fallback
-  const { primaryPath, secondaryPath, isCustom, effectiveLatex, yBounds } = useMemo(() => {
+  const { primaryPath, secondaryPath, tangentPath, roots, isCustom, effectiveLatex, yBounds } = useMemo(() => {
     // 1. Try input expression first (especially good for equations like x^2 + 44 = 0)
     let parsed = inputExpression ? latexToJsFunc(inputExpression) : null;
 
@@ -228,14 +228,45 @@ export const GraphViewer: React.FC<GraphViewerProps> = ({
       }
 
       const primary = buildPath(fn, xMin, xMax, yMin, yMax, width, height);
-      // Derivative approximation for secondary curve
+
+      // Secondary curve y = g(x) (comparison curve / derivative)
       const h = 0.001;
       const derivFn = (x: number) => (fn(x + h) - fn(x - h)) / (2 * h);
       const secondary = buildPath(derivFn, xMin, xMax, yMin, yMax, width, height, 200);
 
+      // Tangent line at x0 = -0.6 (or near center)
+      const x0 = -0.5;
+      const y0 = fn(x0);
+      const slope = derivFn(x0);
+      const tangentFn = (x: number) => y0 + slope * (x - x0);
+      const tangent = buildPath(tangentFn, xMin, xMax, yMin, yMax, width, height, 50);
+
+      // Find root points (f(x) ~ 0)
+      const roots: { x: number; y: number; label: string }[] = [];
+      const step = 0.1;
+      let prevX = xMin;
+      let prevY = fn(prevX);
+      for (let curX = xMin + step; curX <= xMax; curX += step) {
+        const curY = fn(curX);
+        if (Number.isFinite(prevY) && Number.isFinite(curY) && prevY * curY <= 0) {
+          // Linear interpolation for root
+          const rootX = prevX + (-prevY / (curY - prevY)) * (curX - prevX);
+          roots.push({
+            x: rootX,
+            y: 0,
+            label: roots.length === 0 ? 'Points A' : 'Points B',
+          });
+          if (roots.length >= 2) break;
+        }
+        prevX = curX;
+        prevY = curY;
+      }
+
       return {
         primaryPath: primary,
         secondaryPath: secondary,
+        tangentPath: tangent,
+        roots,
         isCustom: true,
         effectiveLatex: cleanLatex,
         yBounds: { yMin, yMax },
@@ -247,10 +278,16 @@ export const GraphViewer: React.FC<GraphViewerProps> = ({
     const defaultPrimary = buildPath(defaultFn, xMin, xMax, -5, 5, width, height);
     const defaultFn2 = (x: number) => 3 - 3 / (x * x + 1);
     const defaultSecondary = buildPath(defaultFn2, xMin, xMax, -5, 5, width, height);
+    const defaultTangent = buildPath((x: number) => 1.5 * x, xMin, xMax, -5, 5, width, height, 50);
 
     return {
       primaryPath: defaultPrimary,
       secondaryPath: defaultSecondary,
+      tangentPath: defaultTangent,
+      roots: [
+        { x: -1.67, y: 0, label: 'Points A' },
+        { x: 0, y: 0, label: 'Points B' },
+      ],
       isCustom: false,
       effectiveLatex: '\\frac{3x^2 + 5x}{x^2 + 1}',
       yBounds: { yMin: -5, yMax: 5 },
@@ -416,19 +453,27 @@ export const GraphViewer: React.FC<GraphViewerProps> = ({
             </text>
           ))}
 
-          {/* Secondary curve (derivative / comparison) */}
+          {/* Secondary curve y = g(x) (Cyan) */}
           {secondaryPath && (
             <path
               d={secondaryPath}
               fill="none"
-              stroke="url(#curve-grad-secondary)"
-              strokeWidth="1.5"
-              strokeDasharray="4,2"
-              opacity="0.8"
+              stroke="#06b6d4"
+              strokeWidth="2"
             />
           )}
 
-          {/* Primary curve */}
+          {/* Tangent Line (Orange) */}
+          {tangentPath && (
+            <path
+              d={tangentPath}
+              fill="none"
+              stroke="#f59e0b"
+              strokeWidth="2"
+            />
+          )}
+
+          {/* Primary curve y = f(x) (Blue) */}
           <path
             d={primaryPath}
             fill="none"
@@ -436,21 +481,34 @@ export const GraphViewer: React.FC<GraphViewerProps> = ({
             strokeWidth="2.5"
           />
 
+          {/* Root Points A & B (Black dots with labels) */}
+          {roots && roots.map((r, idx) => (
+            <g key={`root-pt-${idx}`}>
+              <circle
+                cx={toSvgX(r.x)}
+                cy={toSvgY(r.y)}
+                r="4.5"
+                fill="#0f172a"
+                stroke="#ffffff"
+                strokeWidth="1.5"
+              />
+              <text
+                x={toSvgX(r.x) + (idx === 0 ? -10 : 8)}
+                y={toSvgY(r.y) - 8}
+                fill="#0f172a"
+                fontSize="9"
+                fontFamily="sans-serif"
+                fontWeight="bold"
+                textAnchor={idx === 0 ? 'end' : 'start'}
+              >
+                {r.label}
+              </text>
+            </g>
+          ))}
+
           {/* Origin dot */}
           {isZeroInYRange && <circle cx={toSvgX(0)} cy={toSvgY(0)} r="3" fill="#0284c7" />}
         </svg>
-      </div>
-
-      {/* Legend */}
-      <div className="flex items-center gap-4 text-[10px] text-slate-500">
-        <div className="flex items-center gap-1.5">
-          <div className="w-5 h-0.5 bg-gradient-to-r from-sky-500 to-blue-600 rounded" />
-          <span className="font-medium text-slate-700">f(x)</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-5 h-0.5 border-t border-dashed border-sky-400" />
-          <span className="font-medium text-slate-700">{"f'(x)"}</span>
-        </div>
       </div>
     </div>
   );

@@ -29,7 +29,7 @@ export const MathRenderer: React.FC<MathRendererProps> = ({
 
     if (!hasMathDelimiters) {
       if (isPureProse(cleaned)) {
-        return `<span class="text-slate-200">${escapeHtml(cleaned)}</span>`;
+        return `<span class="text-slate-900 font-bold">${escapeHtml(cleaned)}</span>`;
       }
       // Direct render of the math expression
       try {
@@ -40,7 +40,7 @@ export const MathRenderer: React.FC<MathRendererProps> = ({
         });
       } catch (err) {
         console.warn('KaTeX direct render error:', err);
-        return `<span class="text-rose-400 font-mono text-sm">${escapeHtml(cleaned)}</span>`;
+        return `<span class="text-rose-600 font-mono text-sm">${escapeHtml(cleaned)}</span>`;
       }
     }
 
@@ -59,7 +59,7 @@ export const MathRenderer: React.FC<MathRendererProps> = ({
               output: 'htmlAndMathml',
             });
           } catch {
-            return `<code class="text-rose-400 font-mono text-sm">${escapeHtml(math)}</code>`;
+            return `<code class="text-rose-600 font-mono text-sm">${escapeHtml(math)}</code>`;
           }
         } else if (part.startsWith('$') && part.endsWith('$')) {
           const math = part.slice(1, -1).trim();
@@ -70,18 +70,18 @@ export const MathRenderer: React.FC<MathRendererProps> = ({
               output: 'htmlAndMathml',
             });
           } catch {
-            return `<code class="text-rose-400 font-mono text-sm">${escapeHtml(math)}</code>`;
+            return `<code class="text-rose-600 font-mono text-sm">${escapeHtml(math)}</code>`;
           }
         }
         // Text prose
-        return `<span class="text-slate-300">${escapeHtml(part)}</span>`;
+        return `<span class="text-slate-900 font-semibold">${escapeHtml(part)}</span>`;
       })
       .join('');
   }, [content, displayMode]);
 
   return (
     <div
-      className={`katex-render-container overflow-x-auto py-1 ${className}`}
+      className={`katex-render-container overflow-x-auto py-1 text-slate-900 ${className}`}
       dangerouslySetInnerHTML={{ __html: renderedHtml }}
     />
   );

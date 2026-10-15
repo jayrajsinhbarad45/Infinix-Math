@@ -14,7 +14,6 @@ import {
 import { useAuth } from '../context/AuthContext';
 import AppShell, { WorkspaceTab } from '../components/AppShell';
 import SolverWorkspace from '../components/SolverWorkspace';
-import TutorMode from '../components/TutorMode';
 import { checkBackendHealth, getApiBaseUrl, setApiBaseUrl } from '../lib/api';
 
 export default function DashboardPage() {
@@ -82,24 +81,7 @@ export default function DashboardPage() {
       {/* View: Solver Workspace matching Figure 2 */}
       {activeTab === 'solver' && <SolverWorkspace />}
 
-      {/* View: AI Tutor Workspace matching Figure 3 */}
-      {activeTab === 'tutor' && (
-        <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-300">
-          <TutorMode />
-        </div>
-      )}
 
-      {/* View: Graphing Calculator */}
-      {activeTab === 'graphing' && (
-        <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-300">
-          <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm">
-            <h2 className="text-xl font-bold text-slate-900 mb-2">Interactive Graphing Studio</h2>
-            <p className="text-xs text-slate-500 mb-4">Plot algebraic functions, inspect critical points, and observe root behaviors in real time.</p>
-            {/* Direct solver workspace graph viewer */}
-            <SolverWorkspace />
-          </div>
-        </div>
-      )}
 
       {/* View: Settings */}
       {activeTab === 'settings' && (
