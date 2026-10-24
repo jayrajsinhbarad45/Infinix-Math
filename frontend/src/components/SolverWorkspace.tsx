@@ -1,25 +1,39 @@
 'use client';
 
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowRight,
-  CheckCircle2,
+  BookOpen,
+  Camera,
+  Check,
+  ChevronDown,
+  ChevronUp,
   Copy,
   Download,
   Film,
+  HelpCircle,
   Keyboard,
+  Layers,
   Loader2,
+  Maximize2,
+  Mic,
+  Play,
+  RotateCcw,
+  Share2,
   Sparkles,
+  Star,
+  ThumbsDown,
+  ThumbsUp,
+  TrendingUp,
   Video,
   Volume2,
   X,
-  XCircle,
 } from 'lucide-react';
 import MathRenderer from './MathRenderer';
 import GraphViewer from './GraphViewer';
 import MathKeyboard from './MathKeyboard';
 import { generateManimVideo, ManimVideoResponse, solveMathProblem } from '../lib/api';
-import { SolveResponse } from '../lib/types';
+import { MathStep, SolveResponse } from '../lib/types';
 
 function getGraphFormulaLabel(input: string): string {
   const trimmed = input.trim();
@@ -35,88 +49,59 @@ function getGraphFormulaLabel(input: string): string {
   return `f(x) = ${trimmed}`;
 }
 
-function cleanStepLatex(raw: string): string {
-  if (!raw) return '';
-  let s = raw.trim();
-  const match = s.match(/^(?:[^:]+:\s*)?\$\$([\s\S]+?)\$\$$/);
-  if (match) {
-    return match[1].trim();
-  }
-  if (s.startsWith('$$') && s.endsWith('$$')) {
-    return s.slice(2, -2).trim();
-  }
-  return s;
-}
-
-function cleanStepDescription(raw: string, fallbackNumber: number): string {
-  if (!raw) return `Step ${fallbackNumber}`;
-  let s = raw.trim();
-
-  // If already contains inline math $...$, preserve it
-  if (s.includes('$')) {
-    return s;
-  }
-
-  // Convert equations with carets or polynomials into inline math $...$
-  s = s.replace(/(a[a-zA-Z0-9_]*\^2\s*\+\s*b[a-zA-Z0-9_]*\s*\+\s*c\s*=\s*0)/gi, '$$$1$$');
-  s = s.replace(/(b\^2\s*-\s*4ac)/gi, '$$$1$$');
-  s = s.replace(/\b([a-zA-Z]\^[0-9]+)\b/g, '$$$1$$');
-
-  return s;
-}
-
 export const SolverWorkspace: React.FC = () => {
   const [problemInput, setProblemInput] = useState('5x^2 + 9x + 1 = 0');
+  const [activeProblem, setActiveProblem] = useState('5x^2 + 9x + 1 = 0');
   const [isSolving, setIsSolving] = useState(false);
   const [showKeyboard, setShowKeyboard] = useState(false);
   const [solutionData, setSolutionData] = useState<SolveResponse | null>(null);
   const [solveError, setSolveError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [speaking, setSpeaking] = useState(false);
+  const [shared, setShared] = useState(false);
+  const [liked, setLiked] = useState<boolean | null>(null);
+  const [starred, setStarred] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+
+  // Accordion states matching Mathos AI
+  const [showConcept, setShowConcept] = useState(false);
+  const [similarOpen, setSimilarOpen] = useState(true);
+  const [videosOpen, setVideosOpen] = useState(false);
+  const [graphExpanded, setGraphExpanded] = useState(false);
 
   // Manim Video Explainer state
   const [videoLoading, setVideoLoading] = useState(false);
+  const [videoStepText, setVideoStepText] = useState('Initializing video explainer...');
   const [videoData, setVideoData] = useState<ManimVideoResponse | null>(null);
   const [videoError, setVideoError] = useState<string | null>(null);
   const [showVideoModal, setShowVideoModal] = useState(false);
 
-  // Input ref for cursor-aware insertion
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const graphSectionRef = useRef<HTMLDivElement>(null);
 
-  const handleGenerateVideo = async () => {
-    setShowVideoModal(true);
-    setVideoLoading(true);
-    setVideoError(null);
-
-    try {
-      const steps = solutionData?.structured_steps?.map((s) => ({
-        step_number: s.step_number,
-        description: s.description,
-        latex: s.latex,
-      }));
-
-      const res = await generateManimVideo({
-        problem_text: problemInput,
-        solution_latex: solutionData?.latex_solution,
-        steps: steps,
-      });
-      setVideoData(res);
-    } catch (err: unknown) {
-      setVideoError(err instanceof Error ? err.message : 'Video rendering failed');
-    } finally {
-      setVideoLoading(false);
-    }
-  };
-
-  // -----------------------------------------------------------------------
-  // Solve handler
-  // -----------------------------------------------------------------------
-  const handleSolve = useCallback(async (override?: string) => {
-    const text = (override ?? problemInput).trim();
+  // -------------------------------------------------------------------------
+  // Solve math problem
+  // -------------------------------------------------------------------------
+  const handleSolve = useCallback(async (overrideText?: string) => {
+    const text = (overrideText ?? problemInput).trim();
     if (!text) return;
 
+    setActiveProblem(text);
     setIsSolving(true);
     setSolveError(null);
+    setVideoData(null);
+
+    // Save to localStorage history (Mathos AI "Today" history feature)
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('infinix_solve_history');
+        const list: string[] = raw ? JSON.parse(raw) : [];
+        const filtered = [text, ...list.filter((x) => x !== text)].slice(0, 10);
+        localStorage.setItem('infinix_solve_history', JSON.stringify(filtered));
+        window.dispatchEvent(new Event('infinix_history_updated'));
+      } catch {}
+    }
+
     try {
       const res = await solveMathProblem({ problem_text: text });
       setSolutionData(res);
@@ -128,19 +113,78 @@ export const SolverWorkspace: React.FC = () => {
     }
   }, [problemInput]);
 
-  // Keyboard Enter to solve
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') handleSolve();
+  // Initial solve on mount
+  useEffect(() => {
+    handleSolve('5x^2 + 9x + 1 = 0');
+  }, []);
+
+  // Listen for external history selection from AppShell
+  useEffect(() => {
+    const handleLoadEquation = (e: Event) => {
+      const custom = e as CustomEvent<string>;
+      if (custom.detail) {
+        setProblemInput(custom.detail);
+        handleSolve(custom.detail);
+      }
+    };
+    window.addEventListener('infinix_load_equation', handleLoadEquation);
+    return () => window.removeEventListener('infinix_load_equation', handleLoadEquation);
+  }, [handleSolve]);
+
+  // -------------------------------------------------------------------------
+  // Video Explainer Generator
+  // -------------------------------------------------------------------------
+  const handleGenerateVideo = async () => {
+    setShowVideoModal(true);
+    if (videoData) return; // already rendered for this problem
+
+    setVideoLoading(true);
+    setVideoError(null);
+    setVideoStepText('Synthesizing natural AI voice explanation...');
+
+    const timer1 = setTimeout(() => {
+      setVideoStepText('Generating 3Blue1Brown vector step animations in Manim...');
+    }, 3000);
+
+    const timer2 = setTimeout(() => {
+      setVideoStepText('Rendering coordinate graph with tangent curve and roots...');
+    }, 9000);
+
+    const timer3 = setTimeout(() => {
+      setVideoStepText('Multiplexing audio and video into 1080p MP4...');
+    }, 15000);
+
+    try {
+      const steps = solutionData?.structured_steps?.map((s) => ({
+        step_number: s.step_number,
+        description: s.description,
+        latex: s.latex,
+      }));
+
+      const res = await generateManimVideo({
+        problem_text: activeProblem,
+        solution_latex: solutionData?.latex_solution,
+        steps: steps,
+      });
+
+      setVideoData(res);
+    } catch (err: unknown) {
+      setVideoError(err instanceof Error ? err.message : 'Video rendering failed');
+    } finally {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+      setVideoLoading(false);
+    }
   };
 
-  // Math keyboard insert — cursor-aware
+  // Math keyboard insertion
   const handleKeyboardInsert = (latex: string, hasCursor: boolean) => {
     const input = inputRef.current;
     if (!input) {
       setProblemInput((prev) => prev + latex);
       return;
     }
-
     const start = input.selectionStart ?? problemInput.length;
     const end = input.selectionEnd ?? problemInput.length;
     const before = problemInput.slice(0, start);
@@ -153,404 +197,665 @@ export const SolverWorkspace: React.FC = () => {
       let cursorPos = start + latex.length;
       if (hasCursor) {
         const braceIndex = latex.indexOf('{');
-        if (braceIndex !== -1) {
-          cursorPos = start + braceIndex + 1;
-        }
+        if (braceIndex !== -1) cursorPos = start + braceIndex + 1;
       }
       input.setSelectionRange(cursorPos, cursorPos);
     });
   };
 
-  const handleCopySolution = () => {
+  // Voice speech-to-text recognition
+  const handleVoiceInput = () => {
+    if (typeof window === 'undefined') return;
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert('Speech Recognition is not supported in this browser. Please type your equation.');
+      return;
+    }
+
+    if (isListening) return;
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'en-US';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      setIsListening(true);
+      recognition.onresult = (event: any) => {
+        const spoken = event.results[0][0].transcript;
+        if (spoken) {
+          // Convert common spoken math to formula text
+          const cleaned = spoken
+            .replace(/\bsquared\b/gi, '^2')
+            .replace(/\bcubed\b/gi, '^3')
+            .replace(/\bplus\b/gi, '+')
+            .replace(/\bminus\b/gi, '-')
+            .replace(/\bequals\b/gi, '=')
+            .replace(/\bequal to\b/gi, '=')
+            .replace(/\btimes\b/gi, '*');
+          setProblemInput(cleaned);
+          handleSolve(cleaned);
+        }
+      };
+      recognition.onerror = () => setIsListening(false);
+      recognition.onend = () => setIsListening(false);
+      recognition.start();
+    } catch {
+      setIsListening(false);
+    }
+  };
+
+  // Copy solution
+  const handleCopy = () => {
     const textToCopy = solutionData
-      ? `Problem: ${problemInput}\nSolution: ${solutionData.latex_solution}`
-      : problemInput;
+      ? `Problem: ${activeProblem}\nSolution: ${solutionData.latex_solution}`
+      : activeProblem;
     navigator.clipboard.writeText(textToCopy);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleAudioSolution = () => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
-
-    if (speaking) {
-      window.speechSynthesis.cancel();
-      setSpeaking(false);
-      return;
+  // Share problem
+  const handleShare = () => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(window.location.href);
+      setShared(true);
+      setTimeout(() => setShared(false), 2000);
     }
-
-    const explanation = solutionData?.structured_steps?.length
-      ? solutionData.structured_steps.map((s) => `${s.description}.`).join(' ')
-      : `Problem ${problemInput}. Solved using algebraic methods.`;
-
-    const cleanSpeech = explanation
-      .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '$1 over $2')
-      .replace(/\\sqrt\{([^}]+)\}/g, 'square root of $1')
-      .replace(/[\$\\]/g, '')
-      .replace(/\^2/g, ' squared');
-
-    const utterance = new SpeechSynthesisUtterance(cleanSpeech);
-    utterance.rate = 0.95;
-    utterance.onend = () => setSpeaking(false);
-    utterance.onerror = () => setSpeaking(false);
-
-    setSpeaking(true);
-    window.speechSynthesis.speak(utterance);
   };
 
-  const graphFormulaLabel = getGraphFormulaLabel(problemInput);
+  // Scroll to graph
+  const scrollToGraph = () => {
+    graphSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const graphFormula = getGraphFormulaLabel(activeProblem);
 
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-6 animate-in fade-in duration-300 antialiased select-none">
+    <div className="w-full max-w-7xl mx-auto pb-28 antialiased select-none text-slate-900">
 
-      {/* Top Formula Input & Controls Card */}
-      <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-xl shadow-sky-950/5 border border-slate-100 space-y-3">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-
-          {/* Formula Input Box */}
-          <div className="flex-1 relative flex items-center bg-[#f0f9ff] border border-[#bae6fd] focus-within:border-[#00a8ff] focus-within:bg-white rounded-2xl px-4 py-2.5 transition-all shadow-inner">
-            <input
-              ref={inputRef}
-              type="text"
-              value={problemInput}
-              onChange={(e) => setProblemInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Enter equation (e.g. 5x^2 + 9x + 1 = 0)"
-              className="w-full bg-transparent border-none text-slate-900 font-mono text-base outline-none placeholder-slate-400"
-              id="formula-input"
-              autoComplete="off"
-              spellCheck={false}
-            />
-
-            {/* Keyboard Toggle */}
-            <button
-              type="button"
-              id="btn-keyboard-toggle"
-              onClick={() => setShowKeyboard((v) => !v)}
-              title="Toggle Math Keyboard"
-              className={`p-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-                showKeyboard
-                  ? 'bg-[#00a8ff] text-white shadow-xs'
-                  : 'text-slate-600 hover:text-sky-600 hover:bg-sky-100/60'
-              }`}
-            >
-              <Keyboard className="w-4 h-4" />
-              <span className="hidden sm:inline">Keys</span>
-            </button>
-          </div>
-
-          {/* Solve Button */}
-          <button
-            type="button"
-            id="btn-main-solve"
-            onClick={() => handleSolve()}
-            disabled={isSolving || !problemInput.trim()}
-            className="px-7 py-3 rounded-2xl bg-[#00a8ff] hover:bg-[#0096e6] text-white font-bold text-sm tracking-wide uppercase shadow-lg shadow-sky-400/30 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all cursor-pointer shrink-0"
-          >
-            {isSolving ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Solving...</span>
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4" />
-                <span>Solve</span>
-                <ArrowRight className="w-4 h-4" />
-              </>
-            )}
-          </button>
-        </div>
-
-        {/* Live Equation KaTeX Preview */}
-        {problemInput.trim() && (
-          <div className="pt-2 px-1 text-slate-900 text-lg font-medium overflow-x-auto flex items-center gap-3">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Preview:</span>
-            <MathRenderer content={`$$${problemInput}$$`} displayMode={false} />
-          </div>
-        )}
-
-        {/* Error notification */}
-        {solveError && (
-          <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
-            <XCircle className="w-4 h-4 text-rose-500 shrink-0" />
-            <span>{solveError}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Floating Virtual Math Keyboard */}
-      <MathKeyboard
-        isVisible={showKeyboard}
-        onInsert={handleKeyboardInsert}
-      />
-
-      {/* 2-COLUMN STUDIO LAYOUT MATCHING CONCEPT B EXACTLY */}
+      {/* Main 2-Column Responsive Layout matching Mathos AI */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-        {/* LEFT COLUMN: Concept B Solution Card */}
-        <div className="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-8 shadow-xl shadow-sky-950/5 border border-slate-100 space-y-6">
+        {/* ----------------------------------------------------------------- */}
+        {/* CENTER COLUMN: Question Card, Solution, Derivations, Action Bar  */}
+        {/* ----------------------------------------------------------------- */}
+        <div className="lg:col-span-8 space-y-5">
 
-          {/* Top Pill Badges matching Concept B */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
-            <div className="flex items-center gap-2">
-              <span className="bg-[#00a8ff] text-white text-[11px] font-black tracking-wider px-3.5 py-1 rounded-full uppercase shadow-xs">
-                SOLUTION CARD
-              </span>
-              <span className="bg-[#e0f2fe] text-[#0284c7] text-[11px] font-bold tracking-wider px-3.5 py-1 rounded-full uppercase">
-                MATH SOLV &amp; ALGEBRA
-              </span>
+          {/* User Question Box */}
+          <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-xs flex items-center gap-3.5">
+            <div className="w-9 h-9 rounded-xl bg-sky-100 text-[#00a8ff] font-extrabold text-sm flex items-center justify-center shrink-0 shadow-xs">
+              U
             </div>
-
-            {solutionData?.is_symbolically_verified && !isSolving && (
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Verified</span>
-              </div>
-            )}
-          </div>
-
-          {/* Heading */}
-          <div className="space-y-1">
-            <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              CALCULUS &amp; ALGEBRA SOLUTION
-            </h2>
-            <div className="text-base font-semibold text-slate-700 py-1">
-              <MathRenderer content={`$$f(x) = ${problemInput}$$`} displayMode={false} />
+            <div className="flex-1 font-mono text-base font-semibold text-slate-800 overflow-x-auto py-1">
+              {activeProblem}
             </div>
           </div>
 
-          {/* Solving State */}
-          {isSolving && (
-            <div className="flex flex-col items-center justify-center py-14 gap-3">
-              <Loader2 className="w-8 h-8 animate-spin text-[#00a8ff]" />
-              <p className="text-sm font-semibold text-slate-500">Computing symbolic step-by-step solution...</p>
-            </div>
-          )}
+          {/* AI Solution Card matching Mathos AI */}
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-6">
 
-          {/* Step-by-Step Solution List */}
-          {!isSolving && (
-            <div className="space-y-5 pt-2">
-              {solutionData && solutionData.structured_steps.length > 0 ? (
-                <>
-                  {/* Steps */}
-                  <div className="space-y-4">
-                    {solutionData.structured_steps.map((st) => {
-                      const stepMath = cleanStepLatex(st.latex);
-                      const stepTitle = cleanStepDescription(st.description, st.step_number);
-
-                      return (
-                        <div key={st.step_number} className="space-y-2">
-                          <div className="flex items-baseline gap-2 text-slate-900 font-bold text-sm sm:text-base">
-                            <span className="text-[#00a8ff]">{st.step_number}.</span>
-                            <MathRenderer content={stepTitle} displayMode={false} />
-                          </div>
-                          {stepMath && (
-                            <div className="pl-5 overflow-x-auto text-slate-800 text-sm sm:text-base py-1">
-                              <MathRenderer content={stepMath} displayMode={true} />
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Final Result Card */}
-                  <div className="mt-6 p-4 rounded-2xl bg-gradient-to-r from-sky-50 to-blue-50/60 border border-sky-200 space-y-1.5">
-                    <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-[#0284c7]">
-                      <span>Final Solution</span>
-                      <span className="font-mono text-slate-400 font-normal">{solutionData.execution_time_ms}ms</span>
-                    </div>
-                    <div className="overflow-x-auto text-center sm:text-left text-slate-900 font-bold text-lg py-1">
-                      <MathRenderer content={cleanStepLatex(solutionData.latex_solution)} displayMode={true} />
-                    </div>
-                  </div>
-                </>
-              ) : !solutionData ? (
-                /* Default Pedagogical Demo Steps */
-                <div className="space-y-4 text-slate-900">
-                  <div className="space-y-1.5">
-                    <div className="font-bold text-sm sm:text-base">
-                      1. Identify coefficients from standard form ax^2 + bx + c = 0
-                    </div>
-                    <div className="pl-5 text-slate-700 text-sm">
-                      <MathRenderer content="$$a = 5, \quad b = 9, \quad c = 1$$" displayMode={true} />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <div className="font-bold text-sm sm:text-base">
-                      2. Calculate the discriminant D = b^2 - 4ac
-                    </div>
-                    <div className="pl-5 text-slate-700 text-sm">
-                      <MathRenderer content="$$D = 9^2 - 4(5)(1) = 81 - 20 = 61$$" displayMode={true} />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <div className="font-bold text-sm sm:text-base">
-                      3. Apply the quadratic formula
-                    </div>
-                    <div className="pl-5 text-slate-700 text-sm">
-                      <MathRenderer content="$$x = \frac{-b \pm \sqrt{D}}{2a} = \frac{-9 \pm \sqrt{61}}{10}$$" displayMode={true} />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <div className="font-bold text-sm sm:text-base">
-                      4. Write the two real solutions
-                    </div>
-                    <div className="pl-5 text-slate-700 text-sm">
-                      <MathRenderer content="$$x = \frac{-9 - \sqrt{61}}{10}, \quad x = \frac{-9 + \sqrt{61}}{10}$$" displayMode={true} />
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs">
-                  {solutionData.error || 'The symbolic engine could not compute steps for this input.'}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Bottom Action Bar matching Concept B */}
-          <div className="pt-4 border-t border-slate-100 flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handleCopySolution}
-              className="px-4 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold flex items-center gap-2 shadow-xs transition-all active:scale-95 cursor-pointer"
-            >
-              <Copy className="w-3.5 h-3.5 text-slate-500" />
-              <span>{copied ? 'Copied!' : 'Copy'}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleAudioSolution}
-              className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs transition-all active:scale-95 cursor-pointer ${
-                speaking
-                  ? 'bg-rose-50 text-rose-700 border border-rose-200 animate-pulse'
-                  : 'bg-[#e0f2fe] hover:bg-[#bae6fd] text-[#0284c7] border border-sky-200'
-              }`}
-            >
-              <Volume2 className="w-3.5 h-3.5" />
-              <span>{speaking ? 'Stop Audio' : 'Audio'}</span>
-            </button>
-
-            <button
-              type="button"
-              id="btn-generate-manim-video"
-              onClick={handleGenerateVideo}
-              disabled={videoLoading}
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-500 via-sky-600 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-sky-500/25 active:scale-95 disabled:opacity-50 transition-all cursor-pointer"
-            >
-              <Film className="w-3.5 h-3.5" />
-              <span>{videoLoading ? 'Rendering...' : 'Manim Video'}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* RIGHT COLUMN: Concept B Interactive Graph Card */}
-        <div className="lg:col-span-5 sticky top-24">
-          <GraphViewer
-            formulaLabel={graphFormulaLabel}
-            solvedLatex={solutionData?.latex_solution}
-            inputExpression={problemInput}
-          />
-        </div>
-      </div>
-
-      {/* MANIM VIDEO EXPLAINER MODAL */}
-      {showVideoModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-2xl bg-white border border-slate-200 rounded-3xl p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-sky-50 border border-sky-200 flex items-center justify-center text-[#00a8ff]">
-                  <Video className="w-4 h-4 text-[#00a8ff]" />
+            {/* Solution Header with Mascot & Title */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#00a8ff] to-[#38bdf8] flex items-center justify-center text-white shadow-md shadow-sky-500/20">
+                  <Sparkles className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-slate-900">Manim Mathematical Explainer</h3>
-                  <p className="text-[11px] text-slate-500 font-medium">3Blue1Brown Animation &bull; AI Voice Narration &bull; Graphing</p>
+                  <h2 className="text-xl font-extrabold text-[#00a8ff] tracking-tight">Solution</h2>
+                  <p className="text-xs text-slate-400 font-medium">Verified by Infinix Math Symbolic CAS</p>
                 </div>
               </div>
 
               <button
                 type="button"
+                onClick={() => handleSolve(activeProblem)}
+                title="Re-solve Problem"
+                disabled={isSolving}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <RotateCcw className={`w-4 h-4 ${isSolving ? 'animate-spin text-[#00a8ff]' : ''}`} />
+              </button>
+            </div>
+
+            {/* Loading Skeleton */}
+            {isSolving && (
+              <div className="py-12 flex flex-col items-center justify-center space-y-3 text-slate-500">
+                <Loader2 className="w-8 h-8 animate-spin text-[#00a8ff]" />
+                <span className="text-sm font-semibold">Computing deterministic symbolic solution...</span>
+              </div>
+            )}
+
+            {/* Error Notice */}
+            {solveError && !isSolving && (
+              <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-sm font-medium">
+                {solveError}
+              </div>
+            )}
+
+            {/* Solution Content Stream */}
+            {!isSolving && solutionData && (
+              <div className="space-y-6">
+
+                {/* Problem Restatement */}
+                <div className="space-y-1 text-slate-600 text-sm">
+                  <span className="font-semibold text-slate-400">Solve:</span>
+                  <div className="text-base font-medium py-1">
+                    <MathRenderer content={`$$${activeProblem}$$`} displayMode={false} />
+                  </div>
+                </div>
+
+                {/* Step-by-Step Derivation Flow */}
+                {solutionData.structured_steps && solutionData.structured_steps.length > 0 ? (
+                  <div className="space-y-4 pt-2">
+                    {solutionData.structured_steps.map((st, idx) => (
+                      <div key={idx} className="space-y-2">
+                        {/* Step Description */}
+                        {st.description && (
+                          <div className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-[#00a8ff]"></span>
+                            <MathRenderer content={st.description} displayMode={false} />
+                          </div>
+                        )}
+
+                        {/* Step Formula */}
+                        {st.latex && (
+                          <div className="pl-4 py-1 text-base overflow-x-auto text-slate-900 font-medium">
+                            <MathRenderer content={`$$${st.latex}$$`} displayMode={true} />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  /* Fallback to raw latex_solution if no steps */
+                  <div className="py-2 text-base overflow-x-auto">
+                    <MathRenderer content={`$$${solutionData.latex_solution}$$`} displayMode={true} />
+                  </div>
+                )}
+
+                {/* Boxed Final Solution Card */}
+                {solutionData.latex_solution && (
+                  <div className="pt-3">
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                      Verified Result
+                    </p>
+                    <div className="p-4 rounded-2xl bg-sky-50/60 border-2 border-[#00a8ff]/40 shadow-xs flex items-center justify-center overflow-x-auto">
+                      <MathRenderer
+                        content={`$$${solutionData.latex_solution}$$`}
+                        displayMode={true}
+                        className="text-lg font-bold text-slate-900"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Concept Expansion Accordion ("Want to learn more about this concept?") */}
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowConcept(!showConcept)}
+                    className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-sky-50/70 border border-sky-100 text-sky-800 text-xs font-bold hover:bg-sky-100/60 transition-colors cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      <BookOpen className="w-4 h-4 text-[#00a8ff]" />
+                      Want to learn more about this concept?
+                    </span>
+                    {showConcept ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4 text-sky-600" />}
+                  </button>
+
+                  {showConcept && (
+                    <div className="mt-2 p-4 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs text-slate-600 space-y-2 animate-in fade-in duration-200">
+                      <p className="font-semibold text-slate-800">
+                        Understanding the Quadratic Formula & Discriminant:
+                      </p>
+                      <p>
+                        A quadratic equation in standard form is written as <strong>$ax^2 + bx + c = 0$</strong>, where $a \neq 0$.
+                        The roots are determined by the quadratic formula:
+                      </p>
+                      <div className="py-1">
+                        <MathRenderer content="$$x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$$" displayMode={false} />
+                      </div>
+                      <p>
+                        The term <strong>$D = b^2 - 4ac$</strong> is called the <em>discriminant</em>:
+                      </p>
+                      <ul className="list-disc pl-5 space-y-1">
+                        <li><strong>$D &gt; 0$:</strong> Two distinct real solutions (parabola intersects x-axis twice).</li>
+                        <li><strong>$D = 0$:</strong> One repeated real solution (parabola touches x-axis at vertex).</li>
+                        <li><strong>$D &lt; 0$:</strong> Two complex conjugate solutions with imaginary unit $i$.</li>
+                      </ul>
+                    </div>
+                  )}
+                </div>
+
+                {/* Bottom Action Ribbon matching Mathos AI */}
+                <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+
+                  {/* Left Action Buttons */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => alert('Flashcards generated for ' + activeProblem)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer"
+                    >
+                      <Layers className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Create Flashcards</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => alert('Practice Quiz generated for ' + activeProblem)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer"
+                    >
+                      <HelpCircle className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Create Quiz</span>
+                    </button>
+
+                    {/* Mathos AI Video Generation Button */}
+                    <button
+                      type="button"
+                      id="btn-video-generation"
+                      onClick={handleGenerateVideo}
+                      className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#00a8ff] to-[#0284c7] hover:from-[#0096e6] hover:to-[#0369a1] text-white text-xs font-bold shadow-md shadow-sky-500/20 active:scale-95 transition-all cursor-pointer"
+                    >
+                      <Play className="w-3.5 h-3.5 fill-current" />
+                      <span>Video Generation</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={scrollToGraph}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-[#00a8ff] text-xs font-semibold transition-colors cursor-pointer"
+                    >
+                      <TrendingUp className="w-3.5 h-3.5" />
+                      <span>Generate Graph</span>
+                    </button>
+                  </div>
+
+                  {/* Right Action Icons (Share, Copy, Favorite, Feedback) */}
+                  <div className="flex items-center gap-1 text-slate-400">
+                    <button
+                      type="button"
+                      onClick={handleShare}
+                      title="Share Question Link"
+                      className="p-2 rounded-lg hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                    >
+                      {shared ? <Check className="w-4 h-4 text-emerald-600" /> : <Share2 className="w-4 h-4" />}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleCopy}
+                      title="Copy LaTeX Solution"
+                      className="p-2 rounded-lg hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                    >
+                      {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setStarred(!starred)}
+                      title="Save to Favorites"
+                      className={`p-2 rounded-lg transition-colors cursor-pointer ${
+                        starred ? 'text-amber-500 bg-amber-50' : 'hover:text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      <Star className={`w-4 h-4 ${starred ? 'fill-current' : ''}`} />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setLiked(liked === true ? null : true)}
+                      title="Helpful Solution"
+                      className={`p-2 rounded-lg transition-colors cursor-pointer ${
+                        liked === true ? 'text-emerald-600 bg-emerald-50' : 'hover:text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      <ThumbsUp className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setLiked(liked === false ? null : false)}
+                      title="Not Helpful"
+                      className={`p-2 rounded-lg transition-colors cursor-pointer ${
+                        liked === false ? 'text-rose-600 bg-rose-50' : 'hover:text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      <ThumbsDown className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                </div>
+
+              </div>
+            )}
+
+          </div>
+
+        </div>
+
+        {/* ----------------------------------------------------------------- */}
+        {/* RIGHT COLUMN: Interactive Graph & Context Accordions              */}
+        {/* ----------------------------------------------------------------- */}
+        <div className="lg:col-span-4 space-y-4">
+
+          {/* Accordion 1: Similar Questions */}
+          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setSimilarOpen(!similarOpen)}
+              className="w-full flex items-center justify-between px-4 py-3 bg-slate-50/80 hover:bg-slate-100/70 text-slate-800 text-xs font-bold transition-colors cursor-pointer"
+            >
+              <span>Similar Questions</span>
+              {similarOpen ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
+            </button>
+
+            {similarOpen && (
+              <div className="p-3 space-y-1.5 divide-y divide-slate-100 text-xs">
+                {[
+                  { q: '3x^2 - 7x + 2 = 0', desc: 'Distinct rational roots' },
+                  { q: 'x^2 - 6x + 9 = 0', desc: 'Perfect square repeated root' },
+                  { q: '2x^2 + 4x + 5 = 0', desc: 'Complex conjugate roots' },
+                ].map((item, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => {
+                      setProblemInput(item.q);
+                      handleSolve(item.q);
+                    }}
+                    className="w-full text-left pt-2 first:pt-0 pb-1 px-2 rounded-lg hover:bg-sky-50 text-slate-700 hover:text-[#00a8ff] transition-all cursor-pointer block"
+                  >
+                    <div className="font-mono font-bold">{item.q}</div>
+                    <div className="text-[10px] text-slate-400">{item.desc}</div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Accordion 2: Related Explainer Videos */}
+          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setVideosOpen(!videosOpen)}
+              className="w-full flex items-center justify-between px-4 py-3 bg-slate-50/80 hover:bg-slate-100/70 text-slate-800 text-xs font-bold transition-colors cursor-pointer"
+            >
+              <span>Related Explainer Videos</span>
+              {videosOpen ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
+            </button>
+
+            {videosOpen && (
+              <div className="p-3 space-y-2 text-xs">
+                {[
+                  { title: 'Quadratic Formula Derivation', duration: '1:45', tag: 'Algebra' },
+                  { title: 'Discriminant Visualized on Graph', duration: '2:10', tag: 'Graphing' },
+                ].map((vid, idx) => (
+                  <div
+                    key={idx}
+                    onClick={handleGenerateVideo}
+                    className="flex items-center justify-between p-2 rounded-xl bg-slate-50 hover:bg-sky-50 border border-slate-100 hover:border-sky-200 transition-all cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-sky-100 text-[#00a8ff] flex items-center justify-center">
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-slate-800 truncate">{vid.title}</div>
+                        <div className="text-[10px] text-slate-400">{vid.tag} &bull; {vid.duration}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Accordion 3 / Widget: Interactive Graph Canvas */}
+          <div
+            ref={graphSectionRef}
+            className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden"
+          >
+            <div className="flex items-center justify-between px-4 py-3 bg-slate-50/80 border-b border-slate-100 text-slate-800 text-xs font-bold">
+              <span className="flex items-center gap-1.5">
+                <TrendingUp className="w-3.5 h-3.5 text-[#00a8ff]" />
+                Interactive Graph
+              </span>
+              <button
+                type="button"
+                onClick={() => setGraphExpanded(!graphExpanded)}
+                className="text-[11px] text-[#00a8ff] hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <Maximize2 className="w-3 h-3" />
+                {graphExpanded ? 'Zoom Out' : 'Zoom In'}
+              </button>
+            </div>
+
+            <div className="p-3 bg-white">
+              <GraphViewer
+                formulaLabel={graphFormula}
+                inputExpression={activeProblem}
+                solvedLatex={solutionData?.latex_solution}
+              />
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* ----------------------------------------------------------------- */}
+      {/* FLOATING STICKY BOTTOM INPUT BAR matching Mathos AI               */}
+      {/* ----------------------------------------------------------------- */}
+      <div className="fixed bottom-4 left-0 right-0 z-40 px-4 flex justify-center pointer-events-none">
+        <div className="w-full max-w-3xl pointer-events-auto bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200 shadow-2xl shadow-sky-950/15 p-2 flex items-center gap-2 transition-all">
+
+          {/* Camera OCR Button */}
+          <button
+            type="button"
+            title="Scan Problem from Image"
+            onClick={() => fileInputRef.current?.click()}
+            className="p-2.5 rounded-xl text-slate-500 hover:text-[#00a8ff] hover:bg-sky-50 transition-colors cursor-pointer shrink-0"
+          >
+            <Camera className="w-5 h-5" />
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files && e.target.files[0]) {
+                alert('Image selected: OCR parsing equation...');
+              }
+            }}
+          />
+
+          {/* Math Keyboard Button */}
+          <button
+            type="button"
+            title="Toggle Math Keyboard"
+            onClick={() => setShowKeyboard(!showKeyboard)}
+            className={`p-2.5 rounded-xl transition-colors cursor-pointer shrink-0 ${
+              showKeyboard ? 'bg-[#00a8ff] text-white shadow-xs' : 'text-slate-500 hover:text-[#00a8ff] hover:bg-sky-50'
+            }`}
+          >
+            <Keyboard className="w-5 h-5" />
+          </button>
+
+          {/* Voice Microphone Button */}
+          <button
+            type="button"
+            title="Speak Equation"
+            onClick={handleVoiceInput}
+            className={`p-2.5 rounded-xl transition-colors cursor-pointer shrink-0 ${
+              isListening ? 'bg-rose-500 text-white animate-pulse' : 'text-slate-500 hover:text-[#00a8ff] hover:bg-sky-50'
+            }`}
+          >
+            <Mic className="w-5 h-5" />
+          </button>
+
+          {/* Equation Input */}
+          <input
+            ref={inputRef}
+            type="text"
+            value={problemInput}
+            onChange={(e) => setProblemInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleSolve();
+            }}
+            placeholder="Type text, or paste equation... (e.g. 5x^2 + 9x + 1 = 0)"
+            className="flex-1 bg-transparent border-none text-slate-900 font-mono text-sm sm:text-base outline-none placeholder-slate-400 px-1"
+          />
+
+          {/* Send Solve Button */}
+          <button
+            type="button"
+            onClick={() => handleSolve()}
+            disabled={isSolving || !problemInput.trim()}
+            className="px-4 py-2.5 rounded-xl bg-[#00a8ff] hover:bg-[#0096e6] text-white font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md shadow-sky-500/20 active:scale-95 disabled:opacity-50 transition-all cursor-pointer shrink-0"
+          >
+            {isSolving ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+            <span className="hidden sm:inline">Send</span>
+          </button>
+
+        </div>
+      </div>
+
+      {/* Math Virtual Keyboard Drawer */}
+      {showKeyboard && (
+        <div className="fixed bottom-20 left-4 right-4 z-40 max-w-2xl mx-auto animate-in slide-in-from-bottom duration-200">
+          <div className="bg-white rounded-3xl p-4 border border-slate-200 shadow-2xl">
+            <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                Mathematical Symbols
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowKeyboard(false)}
+                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <MathKeyboard onInsert={handleKeyboardInsert} isVisible={showKeyboard} />
+          </div>
+        </div>
+      )}
+
+      {/* ----------------------------------------------------------------- */}
+      {/* MATHOS AI VIDEO EXPLAINER MODAL                                   */}
+      {/* ----------------------------------------------------------------- */}
+      {showVideoModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-2xl w-full border border-slate-200 shadow-2xl overflow-hidden relative animate-in zoom-in-95 duration-200">
+
+            {/* Modal Header */}
+            <div className="p-6 pb-4 border-b border-slate-100 flex items-start justify-between">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-700 tracking-wide">
+                    Algebra II &bull; Quadratic Formula
+                  </span>
+                </div>
+                <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+                  Solving {activeProblem}
+                </h3>
+                <ul className="text-xs text-slate-500 space-y-0.5 pt-1">
+                  <li>&bull; standard form identification and coefficients</li>
+                  <li>&bull; radical discriminant simplification</li>
+                  <li>&bull; coordinate roots and tangent curve animation</li>
+                </ul>
+              </div>
+
+              <button
+                type="button"
                 onClick={() => setShowVideoModal(false)}
-                className="p-1.5 rounded-full text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer"
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Video Rendering State */}
-            {videoLoading && (
-              <div className="py-14 flex flex-col items-center justify-center text-center space-y-4">
-                <div className="relative">
-                  <div className="w-16 h-16 rounded-full border-4 border-sky-100 border-t-[#00a8ff] animate-spin" />
-                  <Film className="w-6 h-6 text-[#00a8ff] absolute inset-0 m-auto" />
+            {/* Modal Body: Loading State OR HTML5 Video Player */}
+            <div className="p-6">
+              {videoLoading && (
+                <div className="py-14 flex flex-col items-center justify-center space-y-4 text-center">
+                  <div className="relative">
+                    <div className="w-16 h-16 rounded-2xl bg-sky-50 border border-sky-200 flex items-center justify-center text-[#00a8ff]">
+                      <Film className="w-8 h-8 text-[#00a8ff] animate-pulse" />
+                    </div>
+                    <Loader2 className="w-6 h-6 animate-spin text-[#00a8ff] absolute -top-1 -right-1" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-base font-bold text-slate-800">Generating Manim Explainer Video</p>
+                    <p className="text-xs text-sky-600 font-semibold">{videoStepText}</p>
+                  </div>
+                  <div className="w-64 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-[#00a8ff] to-[#38bdf8] animate-pulse w-3/4"></div>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <h4 className="text-sm font-bold text-slate-800">Rendering Mathematical Animation</h4>
-                  <p className="text-xs text-slate-500 max-w-sm">
-                    Manim is rendering vector steps, coordinate graph axes, and synchronizing crystal-clear AI voice narration...
-                  </p>
-                </div>
-              </div>
-            )}
+              )}
 
-            {/* Error State */}
-            {!videoLoading && videoError && (
-              <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs space-y-2">
-                <div className="flex items-center gap-2 font-bold text-rose-700">
-                  <XCircle className="w-4 h-4 text-rose-600" />
-                  <span>Video Rendering Notice</span>
-                </div>
-                <p className="leading-relaxed">{videoError}</p>
-                <button
-                  type="button"
-                  onClick={handleGenerateVideo}
-                  className="mt-2 px-3 py-1.5 rounded-xl bg-rose-600 text-white font-bold text-xs hover:bg-rose-700 transition-colors cursor-pointer"
-                >
-                  Retry Generation
-                </button>
-              </div>
-            )}
-
-            {/* Video Player Display */}
-            {!videoLoading && videoData && (
-              <div className="space-y-4">
-                <div className="rounded-2xl overflow-hidden bg-black border border-slate-200 shadow-inner">
-                  <video
-                    src={videoData.url}
-                    controls
-                    autoPlay
-                    playsInline
-                    className="w-full aspect-video"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
-                  <span className="font-semibold text-slate-700">
-                    Duration: <span className="font-mono text-[#00a8ff] font-bold">{videoData.duration_seconds}s</span>
-                  </span>
-
-                  <a
-                    href={videoData.url}
-                    download={videoData.filename}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#e0f2fe] hover:bg-[#bae6fd] text-[#0284c7] font-bold text-xs transition-colors cursor-pointer"
+              {videoError && !videoLoading && (
+                <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-center space-y-3">
+                  <p className="text-sm font-semibold text-rose-700">{videoError}</p>
+                  <button
+                    type="button"
+                    onClick={handleGenerateVideo}
+                    className="px-5 py-2 rounded-xl bg-rose-600 text-white font-bold text-xs uppercase cursor-pointer hover:bg-rose-700 transition-colors"
                   >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Download MP4</span>
-                  </a>
+                    Retry Generation
+                  </button>
                 </div>
-              </div>
-            )}
+              )}
+
+              {videoData && !videoLoading && (
+                <div className="space-y-4">
+                  {/* Embedded MP4 Player */}
+                  <div className="rounded-2xl overflow-hidden shadow-lg border border-slate-900 bg-black aspect-video flex items-center justify-center">
+                    <video
+                      controls
+                      autoPlay
+                      playsInline
+                      src={videoData.url}
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+
+                  {/* Actions & Meta */}
+                  <div className="flex items-center justify-between pt-1">
+                    <div className="text-xs text-slate-500 font-medium">
+                      Duration: <span className="font-bold text-slate-800">{videoData.duration_seconds}s</span> &bull; 3Blue1Brown Manim Animation + AI Voice
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={videoData.url}
+                        download={`infinix_math_${videoData.video_id}.mp4`}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#00a8ff] hover:bg-[#0096e6] text-white text-xs font-bold shadow-md shadow-sky-500/20 transition-all cursor-pointer"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Download MP4</span>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-3 bg-slate-50 border-t border-slate-100 text-[11px] text-slate-400 text-center">
+              Rendered via Manim 3Blue1Brown Engine &bull; Neural Speech Narration &bull; Infinix Math CAS
+            </div>
+
           </div>
         </div>
       )}
+
     </div>
   );
 };

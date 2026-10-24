@@ -72,6 +72,12 @@ def latex_to_clean_svg(latex_str: str, color: str = "#00a8ff", fontsize: int = 2
     # Normalize common symbols for matplotlib mathtext
     clean_tex = clean_tex.replace(r"\cdot", r"\times")
     clean_tex = clean_tex.replace(r"\left", "").replace(r"\right", "")
+    if clean_tex.startswith(r"\boxed{") and clean_tex.endswith("}"):
+        clean_tex = clean_tex[7:-1].strip()
+    clean_tex = clean_tex.replace(r"\boxed", "")
+    clean_tex = clean_tex.replace(r"\quad", " ")
+    clean_tex = clean_tex.replace(r"\text{or}", r"\mathrm{or}")
+    clean_tex = clean_tex.replace(r"\text", r"\mathrm")
 
     fig = plt.figure(figsize=(7, 1.6))
     fig.text(0.5, 0.5, f"${clean_tex}$", fontsize=fontsize, ha="center", va="center", color=color)
